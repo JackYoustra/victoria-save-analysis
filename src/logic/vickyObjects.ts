@@ -1,4 +1,5 @@
 import _, {omit} from "lodash";
+import {VennDiagramData} from "reaviz";
 
 declare global {
   interface ObjectConstructor {
@@ -96,7 +97,7 @@ function getCountries(vickySave: any): any[] {
   const countryTest = new RegExp('^[A-Z]{3}$');
   const topKeys = Object.keys(vickySave);
   let countries: any[] = [];
-  for (const countryTag of topKeys.filter(countryTest.test)) {
+  for (const countryTag of topKeys.filter(value => { return countryTest.test(value); })) {
     const country = {
       tag: countryTag,
       ...vickySave[countryTag]
@@ -110,7 +111,7 @@ function getFactories(vickySave: any): any[] {
   const countryTest = new RegExp('^[A-Z]{3}$');
   const topKeys = Object.keys(vickySave);
   let factories: any[] = [];
-  const validCountries = topKeys.filter( (value => { return countryTest.test(value); }));
+  const validCountries = topKeys.filter(value => { return countryTest.test(value); });
   for (const countryTag of validCountries) {
     const country = vickySave[countryTag];
     if (country.hasOwnProperty('state')) {
@@ -158,8 +159,30 @@ function getFactories(vickySave: any): any[] {
 export default class VickyObjects {
   readonly pops: any[];
   readonly factories: any[];
+  readonly countries: any[];
+  readonly views: VickyViews;
   constructor(vickySave: any) {
     this.pops = getPops(vickySave);
     this.factories = getFactories(vickySave);
+    this.countries = getCountries(vickySave);
+    this.views = new VickyViews(this);
   }
 }
+
+class VickyViews {
+  readonly vennFlags: VennDiagramData[];
+  constructor(object: VickyObjects) {
+    this.vennFlags = object.countries
+      .filter(country => {
+      return Object.keys(country.flags).length > 0;
+    })
+      .map( (country) => {
+      return {
+        key: Object.keys(country.flags),
+        data: 4,//country.tag as string,
+      }
+    });
+    console.log(this.vennFlags);
+  }
+}
+

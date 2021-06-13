@@ -10,6 +10,8 @@ import TableRenderers from 'react-pivottable/TableRenderers';
 import Plot from 'react-plotly.js';
 import createPlotlyRenderers from 'react-pivottable/PlotlyRenderers';
 import VickyObjects from "../../logic/vickyObjects";
+import {Gradient, VennArc, VennDiagram, VennLabel, VennSeries} from "reaviz";
+import { schemes } from "reaviz";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -82,6 +84,22 @@ export default function VickyTable(props: VickyTableProps) {
         renderers={Object.assign({}, TableRenderers, PlotlyRenderers)}
         {...pivotTableState}
       />}
+      {
+        <VennDiagram
+          height={450}
+          width={450}
+          type={'starEuler'}
+          data={[
+            { key: ['A'], data: 22 },
+            { key: ['B'], data: 12 },
+            { key: ['C'], data: 13 },
+            { key: ['D'], data: 22 },
+            { key: ['A', 'D'], data: 22 },
+            { key: ['A', 'C', 'D'], data: 22 },
+            { key: ['A', 'C'], data: 22 },
+          ]}
+        />
+      }
       <input
         id="myInput"
         type="file"
