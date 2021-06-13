@@ -1,0 +1,29 @@
+{
+  "files": {
+    "main.css": "/material-dashboard-react/static/css/main.af6f120d.chunk.css",
+    "main.js": "/material-dashboard-react/static/js/main.6b91cc1d.chunk.js",
+    "main.js.map": "/material-dashboard-react/static/js/main.6b91cc1d.chunk.js.map",
+    "runtime-main.js": "/material-dashboard-react/static/js/runtime-main.4e0f2a7f.js",
+    "runtime-main.js.map": "/material-dashboard-react/static/js/runtime-main.4e0f2a7f.js.map",
+    "static/css/2.315e0fe4.chunk.css": "/material-dashboard-react/static/css/2.315e0fe4.chunk.css",
+    "static/js/2.ff08e60f.chunk.js": "/material-dashboard-react/static/js/2.ff08e60f.chunk.js",
+    "static/js/2.ff08e60f.chunk.js.map": "/material-dashboard-react/static/js/2.ff08e60f.chunk.js.map",
+    "index.html": "/material-dashboard-react/index.html",
+    "static/css/2.315e0fe4.chunk.css.map": "/material-dashboard-react/static/css/2.315e0fe4.chunk.css.map",
+    "static/css/main.af6f120d.chunk.css.map": "/material-dashboard-react/static/css/main.af6f120d.chunk.css.map",
+    "static/js/2.ff08e60f.chunk.js.LICENSE.txt": "/material-dashboard-react/static/js/2.ff08e60f.chunk.js.LICENSE.txt",
+    "static/js/main.6b91cc1d.chunk.js.LICENSE.txt": "/material-dashboard-react/static/js/main.6b91cc1d.chunk.js.LICENSE.txt",
+    "static/media/marc.e8607287.jpg": "/material-dashboard-react/static/media/marc.e8607287.jpg",
+    "static/media/sidebar-1.0a127c58.jpg": "/material-dashboard-react/static/media/sidebar-1.0a127c58.jpg",
+    "static/media/sidebar-2.22f68ba5.jpg": "/material-dashboard-react/static/media/sidebar-2.22f68ba5.jpg",
+    "static/media/sidebar-3.e667b13e.jpg": "/material-dashboard-react/static/media/sidebar-3.e667b13e.jpg",
+    "static/media/sidebar-4.dd4b5581.jpg": "/material-dashboard-react/static/media/sidebar-4.dd4b5581.jpg"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.4e0f2a7f.js",
+    "static/css/2.315e0fe4.chunk.css",
+    "static/js/2.ff08e60f.chunk.js",
+    "static/css/main.af6f120d.chunk.css",
+    "static/js/main.6b91cc1d.chunk.js"
+  ]
+}
