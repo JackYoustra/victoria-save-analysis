@@ -38,21 +38,18 @@ import {
 } from "variables/charts.js";
 
 import styles from "assets/jss/material-dashboard-react/views/dashboardStyle.js";
+import VickyTable from "./VickyTable";
 
-import VickyTable from "./VickyTable.tsx";
 
 const useStyles = makeStyles(styles);
 
 export default function Dashboard() {
   const classes = useStyles();
-  const [saveJson, setSaveJson] = useState(undefined);
 
   return (
     <div>
-      <VickyTable
-          setVickySave={setSaveJson}
-          vickySave={saveJson}
-      />
+      <VickyTable field="pops"/>
+      <VickyTable field="factories"/>
       <GridContainer>
         <GridItem xs={12} sm={6} md={3}>
           <Card>

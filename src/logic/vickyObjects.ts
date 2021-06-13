@@ -1,5 +1,4 @@
 import _, {omit} from "lodash";
-import {VennDiagramData} from "reaviz";
 
 declare global {
   interface ObjectConstructor {
@@ -170,7 +169,8 @@ export default class VickyObjects {
 }
 
 class VickyViews {
-  readonly vennFlags: VennDiagramData[];
+  // Originally reaviz venn diagram
+  readonly vennFlags: any[];
   constructor(object: VickyObjects) {
     this.vennFlags = object.countries
       .filter(country => {
