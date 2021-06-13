@@ -77,7 +77,7 @@ export default function Sidebar(props) {
   var brand = (
     <div className={classes.logo}>
       <a
-        href="https://www.creative-tim.com?ref=mdr-sidebar"
+        href="https://store.steampowered.com/app/42960/Victoria_II/"
         className={classNames(classes.logoLink)}
         target="_blank"
       >
