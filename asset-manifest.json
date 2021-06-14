@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "/victoria-save-analysis/static/css/main.af6f120d.chunk.css",
-    "main.js": "/victoria-save-analysis/static/js/main.6b91cc1d.chunk.js",
-    "main.js.map": "/victoria-save-analysis/static/js/main.6b91cc1d.chunk.js.map",
+    "main.js": "/victoria-save-analysis/static/js/main.54518b4c.chunk.js",
+    "main.js.map": "/victoria-save-analysis/static/js/main.54518b4c.chunk.js.map",
     "runtime-main.js": "/victoria-save-analysis/static/js/runtime-main.232f9170.js",
     "runtime-main.js.map": "/victoria-save-analysis/static/js/runtime-main.232f9170.js.map",
     "static/css/2.315e0fe4.chunk.css": "/victoria-save-analysis/static/css/2.315e0fe4.chunk.css",
@@ -12,7 +12,7 @@
     "static/css/2.315e0fe4.chunk.css.map": "/victoria-save-analysis/static/css/2.315e0fe4.chunk.css.map",
     "static/css/main.af6f120d.chunk.css.map": "/victoria-save-analysis/static/css/main.af6f120d.chunk.css.map",
     "static/js/2.ff08e60f.chunk.js.LICENSE.txt": "/victoria-save-analysis/static/js/2.ff08e60f.chunk.js.LICENSE.txt",
-    "static/js/main.6b91cc1d.chunk.js.LICENSE.txt": "/victoria-save-analysis/static/js/main.6b91cc1d.chunk.js.LICENSE.txt",
+    "static/js/main.54518b4c.chunk.js.LICENSE.txt": "/victoria-save-analysis/static/js/main.54518b4c.chunk.js.LICENSE.txt",
     "static/media/marc.e8607287.jpg": "/victoria-save-analysis/static/media/marc.e8607287.jpg",
     "static/media/sidebar-1.0a127c58.jpg": "/victoria-save-analysis/static/media/sidebar-1.0a127c58.jpg",
     "static/media/sidebar-2.22f68ba5.jpg": "/victoria-save-analysis/static/media/sidebar-2.22f68ba5.jpg",
@@ -24,6 +24,6 @@
     "static/css/2.315e0fe4.chunk.css",
     "static/js/2.ff08e60f.chunk.js",
     "static/css/main.af6f120d.chunk.css",
-    "static/js/main.6b91cc1d.chunk.js"
+    "static/js/main.54518b4c.chunk.js"
   ]
 }
