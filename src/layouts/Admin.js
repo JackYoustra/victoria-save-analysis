@@ -24,7 +24,7 @@ let ps;
 const switchRoutes = (
   <Switch>
     {routes.map((prop, key) => {
-      if (prop.layout === "/admin") {
+      if (prop.layout === "/victoria-save-analysis") {
         return (
           <Route
             path={prop.layout + prop.path}
@@ -35,7 +35,7 @@ const switchRoutes = (
       }
       return null;
     })}
-    <Redirect from="/admin" to="/admin/dashboard" />
+    <Redirect from="/victoria-save-analysis" to="/victoria-save-analysis/dashboard" />
   </Switch>
 );
 
@@ -68,7 +68,7 @@ export default function Admin({ ...rest }) {
     setMobileOpen(!mobileOpen);
   };
   const getRoute = () => {
-    return window.location.pathname !== "/admin/maps";
+    return window.location.pathname !== "/victoria-save-analysis/maps";
   };
   const resizeFunction = () => {
     if (window.innerWidth >= 960) {
