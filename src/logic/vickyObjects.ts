@@ -1,4 +1,6 @@
 import _, {omit} from "lodash";
+import {FileWithDirectoryHandle} from "browser-fs-access";
+import v2parser from "./v2parser";
 
 declare global {
   interface ObjectConstructor {
@@ -153,6 +155,52 @@ function getFactories(vickySave: any): any[] {
     }
   }
   return factories;
+}
+
+// Put the top level as a property of the inner level
+function lower(top: any, loweringKey: string): any {
+  // Top of the object - want to take these entries and lower them
+  Object.entries(top).reduce((prior, current, {}, {}) => {
+    // This 'key' is what we want to be incorporated into the values
+    // If there's no key, *ignore*
+    const [topKey, value] = current;
+    if (_.isObject(value)) {
+      return Object.entries(value).reduce((accum, newCurrent, {}, {}) => {
+        const [settingKey, settingValue] = newCurrent;
+        if (_.isObject(settingValue)) {
+          accum[settingKey] = {
+            ...settingValue
+          }
+          accum[settingKey][loweringKey] = topKey
+        }
+        return accum
+      }, prior);
+    } else {
+      return value as any;
+    }
+  }, {});
+}
+
+export class VickyGameConfiguration {
+  // Ideology to ideology object map
+  ideologies: any;
+
+  private constructor() { }
+
+  public static async createSave(saveDirectory: FileWithDirectoryHandle[]): Promise<VickyGameConfiguration> {
+    let config = new VickyGameConfiguration();
+    for (const fileDirectoryHandle of saveDirectory) {
+      console.log("Found " + fileDirectoryHandle.name);
+      if (fileDirectoryHandle.name == "ideologies.txt") {
+        console.log("Found it");
+        const ideologyText = await fileDirectoryHandle.text();
+        const ideologyData = v2parser.parse(ideologyText);
+        console.log(ideologyData);
+        config.ideologies = lower(ideologyData, "group");
+      }
+    }
+    return config;
+  }
 }
 
 export default class VickyObjects {

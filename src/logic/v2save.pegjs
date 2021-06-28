@@ -4,12 +4,13 @@
 // Accepts expressions like "2 * (3 + 4)" and computes their value.
 
 Save
- = e:EntryGroup "}"? _ { return e; }
+ = _ e:EntryGroup "}"? _ { return e; }
 
 EntryGroup
  = e:Entry* {
+    // Handle duplicates and boxing
     const visitedSet = new Set();
-    const LIST_KEY = "list";
+    const LIST_KEY = "__list";
     const reduction = e.reduce((previousValue, currentValue) => {
       // If anonymous, add to list
       if (!Array.isArray(currentValue)) {
@@ -51,7 +52,7 @@ Entry
  / _ "{" _ arr:List _ "}" _ { return arr; } // anonymous lists.
 
 Line
- = identifier:ID leafsymbol:Value _ { return [ identifier, leafsymbol ]; }
+ = identifier:ID _ leafsymbol:Value _ { return [ identifier, leafsymbol ]; }
 
 List
  = arr:ListElement* { return arr; }
@@ -61,14 +62,18 @@ ListElement
    / a:Value _ { return a; }
 
 ID
-  = identifier:Atomic "=" { return identifier; }
+  = identifier:Atomic _ "=" { return identifier; }
 
 Value
   = Literal
+  / _ d:Date { return d; } // Have to parse unquoted date first because ambiguous with other entries
   / _ floating:$([0-9]+"."[0-9]+) { return parseFloat(floating); }
   / _ integer:$([0-9]+) { return parseInt(integer); }
-  / _ "\""year:$([0-9]+)"."month:$([0-9]+)"."date:$([0-9]+)"\"" { return new Date(year, month - 1, date) } // lol js months start at 0
+  / _ "\""d:Date"\"" { return d; }
   / Atomic
+
+Date
+  = year:$([0-9]+)"."month:$([0-9]+)"."date:$([0-9]+) { return new Date(year, month - 1, date) } // lol js months start at 0
 
 Literal "literal"
   = _ "\"" literal:$[^\"]* "\"" { return literal; }
@@ -77,4 +82,5 @@ Atomic "atomic"
   = _ elems:$[^ \n\r\t=}{]+ { return elems; }
 
 _ "whitespace"
-  = [ \t\n\r]*
+  = "#"[^\n\r]*[\n\r]
+  / [ \t\n\r]*

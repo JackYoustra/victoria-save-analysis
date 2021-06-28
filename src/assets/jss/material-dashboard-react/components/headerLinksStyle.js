@@ -108,6 +108,11 @@ const headerLinksStyle = (theme) => ({
     },
     display: "inline-block",
   },
+  itemStyle: {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+  },
 });
 
 export default headerLinksStyle;

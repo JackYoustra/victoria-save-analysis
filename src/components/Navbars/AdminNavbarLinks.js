@@ -16,13 +16,13 @@ import Notifications from "@material-ui/icons/Notifications";
 import Dashboard from "@material-ui/icons/Dashboard";
 import Search from "@material-ui/icons/Search";
 // core components
-import CustomInput from "components/CustomInput/CustomInput.js";
 import Button from "components/CustomButtons/Button.js";
 
 import styles from "assets/jss/material-dashboard-react/components/headerLinksStyle.js";
 
 const useStyles = makeStyles(styles);
 import VickyUploadButton from "./VickyUploadButton"
+import VickySetConfigurationButton from "./VickySetConfigurationButton";
 
 export default function AdminNavbarLinks() {
   const classes = useStyles();
@@ -49,8 +49,9 @@ export default function AdminNavbarLinks() {
     setOpenProfile(null);
   };
   return (
-    <div>
+    <div className={classes.itemStyle}>
       <VickyUploadButton/>
+        <VickySetConfigurationButton/>
       <Button
         color={window.innerWidth > 959 ? "transparent" : "white"}
         justIcon={window.innerWidth > 959}

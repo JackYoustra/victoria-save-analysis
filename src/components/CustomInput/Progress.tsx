@@ -53,6 +53,7 @@ export enum ProcessTypes {
 interface CircularIntegrationProps {
   processState: ProcessTypes;
   onClick: MouseEventHandler;
+  children: React.ReactNode;
 }
 
 export default function CircularIntegration(props: CircularIntegrationProps) {
@@ -109,7 +110,7 @@ export default function CircularIntegration(props: CircularIntegrationProps) {
           disabled={loading}
           onClick={handleButtonClick}
         >
-          Upload your savegame
+          {props.children}
         </Button>
         {loading && (
           <CircularProgress size={24} className={classes.buttonProgress} />

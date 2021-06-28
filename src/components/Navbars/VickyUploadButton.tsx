@@ -11,10 +11,15 @@ const useStyles = makeStyles((theme: Theme) =>
     input: {
       display: "none",
     },
+    vickyUpload: {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+    },
   })
 );
 
-export default function render() {
+export default function VickyUploadButton() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const classes = useStyles();
 
@@ -59,7 +64,7 @@ export default function render() {
     }
   }
   return (
-    <div>
+    <div className={classes.vickyUpload}>
       <p>
         {topLabel}
       </p>
@@ -71,7 +76,9 @@ export default function render() {
         onChange={onChange}
       />
 
-      <CircularIntegration processState={processState} onClick={handleClick} />
+      <CircularIntegration processState={processState} onClick={handleClick}>
+        Upload your savegame
+      </CircularIntegration>
     </div>
   );
 
