@@ -1,9 +1,7 @@
 import React, {useRef, useState} from "react";
 import {createStyles, makeStyles, Theme} from "@material-ui/core/styles";
-import v2parser from "../../logic/v2parser";
-import VickyObjects, {VickyGameConfiguration} from "../../logic/vickyObjects";
+import {VickyGameConfiguration} from "../../logic/vickyObjects";
 import CircularIntegration, {ProcessTypes} from "../CustomInput/Progress";
-import _ from "lodash";
 import {useSave} from "../../logic/VickySavesProvider";
 import {directoryOpen} from "browser-fs-access";
 
@@ -34,7 +32,7 @@ export default function VickySetConfigurationButton() {
       recursive: true,
     });
     const config = await VickyGameConfiguration.createSave(blobsInDirectory);
-    console.log(config);
+    vickyContext.dispatch({ type: "setConfiguration", value: config});
   }
 
   return (

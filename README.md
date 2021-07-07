@@ -180,8 +180,8 @@ material-dashboard-react
         │   └── Typography.js
         ├── UpgradeToPro
         │   └── UpgradeToPro.js
-        └── UserProfile
-            └── UserProfile.js
+        └── MapPage
+            └── MapPage.js
 ```
 
 ## Browser Support

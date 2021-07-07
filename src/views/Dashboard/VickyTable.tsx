@@ -16,7 +16,7 @@ export default function VickyTable(props: VickyTableProps) {
   // create Plotly renderers via dependency injection
   const PlotlyRenderers = createPlotlyRenderers(Plot);
 
-  const vickySave = useSave().state;
+  const vickySave = useSave().state.save;
 
   return (
     <div>

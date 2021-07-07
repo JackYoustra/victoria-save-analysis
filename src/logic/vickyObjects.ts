@@ -1,6 +1,8 @@
 import _, {omit} from "lodash";
 import {FileWithDirectoryHandle} from "browser-fs-access";
+import Image from "image-js";
 import v2parser from "./v2parser";
+import Papa, {ParseResult} from "papaparse";
 
 declare global {
   interface ObjectConstructor {
@@ -52,41 +54,48 @@ function box(maybeArray: any): any[] {
   return maybeArray;
 }
 
-function getPops(vickySave: any): any[] {
+function getProvinces(vickySave: any): any[] {
   const provinceTest = new RegExp('^[0-9]+$');
   const topKeys = Object.keys(vickySave);
-  let pops: any[] = [];
-  // May be able to abbreviate to for const key in props.vickySave
+  let provinces: any[] = [];
   for (const rootKey of topKeys) {
     if (provinceTest.test(rootKey)) {
       const province = vickySave[rootKey];
-      for (let [popTitle, popMaybeArr] of Object.entries(province) as [string, any]) {
-        // Pops have an ideology tag associated with them, use that to distinguish pop from fake pop
-        // https://stackoverflow.com/questions/3476255/in-javascript-how-can-i-tell-if-a-field-exists-inside-an-object
-        popMaybeArr = box(popMaybeArr);
-        for (const popMaybe of popMaybeArr) {
-          if (popMaybe.hasOwnProperty('ideology')) {
-            // We're looking at an actual pop, great!
-            // Need to remove ethnicity or it's a mess!
-            // Should be the third property
-            const ethnicity = Object.keys(popMaybe)[2];
-            const culture = popMaybe[ethnicity];
-            // https://stackoverflow.com/a/34710102/998335
-            const cleanedPop = omit(popMaybe, ethnicity);
-            const pop = {
-              home: province['name'],
-              nationality: province['owner'],
-              occupation: popTitle,
-              ethnicity: ethnicity,
-              culture: culture,
-              // @ts-ignore
-              ...Object.flatten(cleanedPop)
-            }
-            // https://stackoverflow.com/questions/5467129/sort-javascript-object-by-key
+      provinces.push(province);
+    }
+  }
+  return provinces;
+}
+
+function getPops(provinces: any[]): any[] {
+  let pops: any[] = [];
+  for (const province of provinces) {
+    for (let [popTitle, popMaybeArr] of Object.entries(province) as [string, any]) {
+      // Pops have an ideology tag associated with them, use that to distinguish pop from fake pop
+      // https://stackoverflow.com/questions/3476255/in-javascript-how-can-i-tell-if-a-field-exists-inside-an-object
+      popMaybeArr = box(popMaybeArr);
+      for (const popMaybe of popMaybeArr) {
+        if (popMaybe.hasOwnProperty('ideology')) {
+          // We're looking at an actual pop, great!
+          // Need to remove ethnicity or it's a mess!
+          // Should be the third property
+          const ethnicity = Object.keys(popMaybe)[2];
+          const culture = popMaybe[ethnicity];
+          // https://stackoverflow.com/a/34710102/998335
+          const cleanedPop = omit(popMaybe, ethnicity);
+          const pop = {
+            home: province['name'],
+            nationality: province['owner'],
+            occupation: popTitle,
+            ethnicity: ethnicity,
+            culture: culture,
             // @ts-ignore
-            const orderedPop = Object.sortedByKeys(pop)
-            pops.push(orderedPop);
+            ...Object.flatten(cleanedPop)
           }
+          // https://stackoverflow.com/questions/5467129/sort-javascript-object-by-key
+          // @ts-ignore
+          const orderedPop = Object.sortedByKeys(pop)
+          pops.push(orderedPop);
         }
       }
     }
@@ -181,35 +190,111 @@ function lower(top: any, loweringKey: string): any {
   }, {});
 }
 
+interface ProvinceDefinition {
+  province: number,
+  red: number,
+  green: number,
+  blue: number,
+  x: string,
+}
+
+export function rgbToHex(array: number[]): string {
+  const [r, g, b] = array;
+  return ((r << 16) | (g << 8) | b).toString(16);
+}
+
+function makeProvinceLookup(definitions: ProvinceDefinition[]): any {
+  const retVal = definitions.map((definition, index, array) => {
+    const hex = rgbToHex([definition.red, definition.green, definition.blue]);
+    return [hex, definition.province]
+  });
+  return Object.fromEntries(retVal);
+}
+
+interface URLCachedImage {
+  original: Image;
+  url: string;
+}
+
 export class VickyGameConfiguration {
   // Ideology to ideology object map
-  ideologies: any;
+  ideologies?: any;
+  provinceMap?: URLCachedImage;
+  provinceLookup?: any;
 
-  private constructor() { }
+  private constructor(ideologies?: any, provinceMap?: URLCachedImage, provinceLookup?: any) {
+    this.ideologies = ideologies;
+    this.provinceMap = provinceMap;
+    this.provinceLookup = provinceLookup;
+  }
 
   public static async createSave(saveDirectory: FileWithDirectoryHandle[]): Promise<VickyGameConfiguration> {
-    let config = new VickyGameConfiguration();
+    let promises: Promise<any>[] = Array(3).fill(Promise.reject(new Error("File not found")));
     for (const fileDirectoryHandle of saveDirectory) {
       console.log("Found " + fileDirectoryHandle.name);
       if (fileDirectoryHandle.name == "ideologies.txt") {
         console.log("Found it");
-        const ideologyText = await fileDirectoryHandle.text();
-        const ideologyData = v2parser.parse(ideologyText);
-        console.log(ideologyData);
-        config.ideologies = lower(ideologyData, "group");
+        promises[0] = fileDirectoryHandle.text();
+      } else if (fileDirectoryHandle.name == "provinces.bmp") {
+        // Province locations and colors
+        console.log("Found map");
+        promises[1] = fileDirectoryHandle.arrayBuffer().then(Image.load);
+      } else if (fileDirectoryHandle.name == "definition.csv") {
+        // Province definition
+        promises[2] = new Promise((complete, error) => {
+          Papa.parse(fileDirectoryHandle, {
+            header: true,
+            complete(results: ParseResult<ProvinceDefinition>, file?: File) {
+              complete(results.data);
+            },
+            error,
+          });
+        });
       }
     }
-    return config;
+    for (const promise of promises) {
+      promise.catch(reason => {
+        console.error("Error loading: " + reason);
+      })
+    }
+    const results = await Promise.allSettled(promises);
+
+    const [ideologyText, rawMapImage, provinceDefinitionsMaybe] = results;
+    let ideologies: any | undefined = undefined;
+    let mapImage: URLCachedImage | undefined = undefined;
+    let provinceLookup: any | undefined = undefined;
+    if (ideologyText.status == "fulfilled") {
+      const ideologyData = v2parser.parse(ideologyText.value);
+      console.log(ideologyData);
+      ideologies = lower(ideologyData, "group");
+    }
+    if (rawMapImage.status == "fulfilled") {
+      let middleMapImage = rawMapImage.value;
+      // @ts-ignore
+      middleMapImage.flipY();
+      mapImage = {
+        original: middleMapImage,
+        url: middleMapImage.toDataURL(),
+      };
+    }
+    if (provinceDefinitionsMaybe.status == "fulfilled") {
+      let provinceDefinitions = provinceDefinitionsMaybe.value;
+      provinceLookup = makeProvinceLookup(provinceDefinitions);
+      console.log(provinceLookup);
+    }
+    return new VickyGameConfiguration(ideologies, mapImage, provinceLookup);
   }
 }
 
-export default class VickyObjects {
+export class VickySave {
+  readonly provinces: any[];
   readonly pops: any[];
   readonly factories: any[];
   readonly countries: any[];
   readonly views: VickyViews;
   constructor(vickySave: any) {
-    this.pops = getPops(vickySave);
+    this.provinces = getProvinces(vickySave);
+    this.pops = getPops(this.provinces);
     this.factories = getFactories(vickySave);
     this.countries = getCountries(vickySave);
     this.views = new VickyViews(this);
@@ -219,7 +304,7 @@ export default class VickyObjects {
 class VickyViews {
   // Originally reaviz venn diagram
   readonly vennFlags: any[];
-  constructor(object: VickyObjects) {
+  constructor(object: VickySave) {
     this.vennFlags = object.countries
       .filter(country => {
       return Object.keys(country.flags).length > 0;
@@ -232,5 +317,10 @@ class VickyViews {
     });
     console.log(this.vennFlags);
   }
+}
+
+export default interface VickyContext {
+  readonly save?: VickySave;
+  readonly configuration?: VickyGameConfiguration;
 }
 

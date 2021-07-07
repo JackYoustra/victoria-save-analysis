@@ -1,7 +1,7 @@
 import React, {useRef, useState} from "react";
 import {createStyles, makeStyles, Theme} from "@material-ui/core/styles";
 import v2parser from "../../logic/v2parser";
-import VickyObjects from "../../logic/vickyObjects";
+import {VickySave} from "../../logic/vickyObjects";
 import CircularIntegration, {ProcessTypes} from "../CustomInput/Progress";
 import _ from "lodash";
 import {useSave} from "../../logic/VickySavesProvider";
@@ -42,8 +42,8 @@ export default function VickyUploadButton() {
         if (_.isString(result)) {
           setTopLabel("Reading and processing " + file.name);
           const rawOutput = v2parser.parse(result);
-          const objectVersion = new VickyObjects(rawOutput);
-          vickyContext.dispatch({ type: "add", value: objectVersion});
+          const objectVersion = new VickySave(rawOutput);
+          vickyContext.dispatch({ type: "setSave", value: objectVersion});
           setProcessState(ProcessTypes.Success);
           setTopLabel(file.name);
         } else {

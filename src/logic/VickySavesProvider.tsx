@@ -1,28 +1,34 @@
 import React from "react";
-import VickyObjects from "./vickyObjects";
+import VickyContext, {VickyGameConfiguration, VickySave} from "./vickyObjects";
 
-type Action = {type: 'add', value: VickyObjects} | {type: 'remove'}
+type Action = {type: 'setSave', value: VickySave} | {type: 'setConfiguration', value: VickyGameConfiguration}
 type Dispatch = (action: Action) => void
-type State = VickyObjects | undefined
+type State = VickyContext
 type VickySavesProviderProps = {children: React.ReactNode}
 
 const VickySavesContext = React.createContext<
   {state: State; dispatch: Dispatch} | undefined
   >(undefined);
 
-function saveReducer(state: State, action: Action): VickyObjects | undefined {
+function saveReducer(state: State, action: Action): VickyContext {
   switch (action.type) {
-    case 'add': {
-      return action.value
+    case 'setSave': {
+      return {
+        save: action.value,
+        ...state,
+      }
     }
-    default: {
-      throw new Error(`Unhandled action type: ${action.type}`)
+    case 'setConfiguration': {
+      return {
+        configuration: action.value,
+        ...state,
+      }
     }
   }
 }
 
 export default function VickySavesProvider({children}: VickySavesProviderProps) {
-  const [state, dispatch] = React.useReducer(saveReducer, undefined);
+  const [state, dispatch] = React.useReducer(saveReducer, {});
   const value = {state, dispatch};
   return <VickySavesContext.Provider value={value}>
     {children}
