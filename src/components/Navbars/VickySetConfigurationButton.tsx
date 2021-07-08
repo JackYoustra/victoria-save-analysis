@@ -32,7 +32,7 @@ export default function VickySetConfigurationButton() {
       recursive: true,
     });
     const config = await VickyGameConfiguration.createSave(blobsInDirectory);
-    vickyContext.dispatch({ type: "setConfiguration", value: config});
+    vickyContext.dispatch({ type: "mergeConfiguration", value: config});
   }
 
   return (

@@ -1,7 +1,8 @@
 import React from "react";
 import VickyContext, {VickyGameConfiguration, VickySave} from "./vickyObjects";
+import _ from "lodash";
 
-type Action = {type: 'setSave', value: VickySave} | {type: 'setConfiguration', value: VickyGameConfiguration}
+type Action = {type: 'setSave', value: VickySave} | {type: 'mergeConfiguration', value: VickyGameConfiguration}
 type Dispatch = (action: Action) => void
 type State = VickyContext
 type VickySavesProviderProps = {children: React.ReactNode}
@@ -11,17 +12,20 @@ const VickySavesContext = React.createContext<
   >(undefined);
 
 function saveReducer(state: State, action: Action): VickyContext {
+  console.log("Reducer");
+  console.log(state.configuration);
   switch (action.type) {
     case 'setSave': {
       return {
-        save: action.value,
         ...state,
+        save: action.value,
       }
     }
-    case 'setConfiguration': {
+    case 'mergeConfiguration': {
       return {
-        configuration: action.value,
         ...state,
+        // @ts-ignore
+        configuration: _.assign({... state.configuration}, _.pickBy(action.value, v => !_.isUndefined(v))),
       }
     }
   }

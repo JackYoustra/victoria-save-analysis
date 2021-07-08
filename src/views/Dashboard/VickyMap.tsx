@@ -1,14 +1,11 @@
-import React, {MouseEventHandler, useCallback, useRef, useState} from "react";
+import React, {MouseEventHandler, useCallback, useEffect, useRef, useState} from "react";
 import {useSave} from "../../logic/VickySavesProvider";
 import {makeStyles} from "@material-ui/core/styles";
 import ReactTooltip from "react-tooltip";
-import {rgbToHex} from "../../logic/vickyObjects";
-
-const styles = {
-  img: {
-    // objectFit: 'contain',
-  },
-};
+import {ProvinceDefinition, rgbToHex} from "../../logic/vickyObjects";
+import ProvinceTooltip from "../MapPage/ProvinceTooltip";
+import _ from "lodash";
+import {Country} from "../../logic/vickyFileStructures";
 
 function relativeCoords(event: React.MouseEvent<HTMLImageElement, MouseEvent>) {
   let bounds = event.currentTarget.getBoundingClientRect();
@@ -17,14 +14,11 @@ function relativeCoords(event: React.MouseEvent<HTMLImageElement, MouseEvent>) {
   return {x: x, y: y};
 }
 
-const useStyles = makeStyles(styles);
-
 export default function VickyMap() {
-  const style = useStyles();
   const vickyContext = useSave();
-  const configuration = vickyContext.state.configuration;
+  const { save: save, configuration: configuration } = vickyContext.state;
   const imageRef = useRef<HTMLImageElement | null>(null);
-  const [imageCoordinates, useImageCoordinates] = useState<number | null>(null);
+  const [selectedProvince, useSelectedProvince] = useState<ProvinceDefinition | null>(null);
   const callback: MouseEventHandler<HTMLImageElement> = useCallback((event) => {
     let coords = relativeCoords(event);
     if (imageRef.current) {
@@ -33,15 +27,31 @@ export default function VickyMap() {
       coords.y *= imageRef.current.naturalHeight / imageRef.current.height;
     }
     const pixel = configuration?.provinceMap?.original.getPixelXY(Math.trunc(coords.x), Math.trunc(coords.y));
-    console.log(pixel);
     if (pixel && configuration?.provinceLookup) {
       const hex = rgbToHex(pixel);
-      const province: number = configuration.provinceLookup[hex];
-      console.log(hex);
-      console.log(province);
-      useImageCoordinates(province)
+      const province: ProvinceDefinition = configuration.provinceLookup[hex];
+      useSelectedProvince(province)
     }
-  }, [useImageCoordinates, configuration]);
+  }, [useSelectedProvince, configuration]);
+
+  let backgroundColor: string | undefined = undefined;
+  let province: any | undefined = undefined;
+  let owningCountry: Country | undefined = undefined;
+
+  const countries = configuration?.countries;
+  if (_.isObject(countries) && selectedProvince && save) {
+    const provinceMaybe = save.provinces[selectedProvince.province - 1];
+    if(_.isObject(provinceMaybe) && _.isString(provinceMaybe["owner"])) {
+      province = provinceMaybe;
+      const countryMaybe = countries[province["owner"]];
+      if (_.isObject(countryMaybe)) {
+        owningCountry = countryMaybe as Country;
+        const newBackgroundColor = ("#" + rgbToHex(owningCountry.color) + "FF").toUpperCase();
+        backgroundColor = newBackgroundColor;
+      }
+    }
+  }
+
   if (!configuration?.provinceMap) {
     console.log("No map")
     // https://stackoverflow.com/questions/42083181/is-it-possible-to-return-empty-in-react-render-function
@@ -49,42 +59,30 @@ export default function VickyMap() {
   }
 
   return (
-    // <MapInteractionCSS>
-    //   <img src={configuration.provinceMap.original.toDataURL()}  alt={"The map of the Victoria 2 game"}/>
-    // </MapInteractionCSS>
-    // <InnerImageZoom
-    //   src={configuration.provinceMap.scaled.toDataURL()}
-    //   zoomSrc={configuration.provinceMap.original.toDataURL()}
-    //   zoomType="hover"
-    //   zoomPreload={true}
-    //   fullscreenOnMobile={true}
-    // />
-    // <ReactImageMagnify {...{
-    //   smallImage: {
-    //     src: configuration.provinceMap.original.toDataURL(),
-    //     alt: "The map of the Victoria 2 game",
-    //   },
-    //   largeImage: {
-    //     src: configuration.provinceMap.scaled.toDataURL(),
-    //     width: 300,
-    //     height: 100,
-    //   },
-    //   isHintEnabled: true,
-    // }} />
     <>
       <a data-tip='React-tooltip'>
-      <img style={{
-          height: '100%',
-          width: '100%',
-        }}
-             src={configuration.provinceMap.url}
-             alt={"The map of the Victoria 2 game"}
-             onMouseMove={callback}
-             ref={imageRef}
+        <img
+          style={{
+            height: '100%',
+            width: '100%',
+          }}
+          src={configuration.provinceMap.url}
+          alt={"The map of the Victoria 2 game"}
+          onMouseMove={callback}
+          ref={imageRef}
         />
       </a>
-      <ReactTooltip place="top" type="dark" effect="float">
-        {JSON.stringify(imageCoordinates)}
+      <ReactTooltip
+        place="top"
+        type="dark"
+        effect="float"
+      >
+        {selectedProvince ?
+        <ProvinceTooltip
+          selectedProvince={selectedProvince}
+          fullProvince={province}
+          owningCountry={owningCountry}
+        /> : "No province selected"}
       </ReactTooltip>
     </>
   );

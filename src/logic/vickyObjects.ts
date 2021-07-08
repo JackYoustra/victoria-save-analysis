@@ -3,6 +3,7 @@ import {FileWithDirectoryHandle} from "browser-fs-access";
 import Image from "image-js";
 import v2parser from "./v2parser";
 import Papa, {ParseResult} from "papaparse";
+import TGA from "tga";
 
 declare global {
   interface ObjectConstructor {
@@ -166,7 +167,27 @@ function getFactories(vickySave: any): any[] {
   return factories;
 }
 
-// Put the top level as a property of the inner level
+// {a: {b: c, d: e}}
+// {b: {a: c}, d: {a: e}}
+function swapPrimaryKey(base: Object): any {
+  let retVal = {}
+  for (const [rootKey, objectValue] of Object.entries(base)) {
+    if (_.isObject(objectValue)) {
+      for (const [key, value] of Object.entries(objectValue)) {
+        const addedKey = {}
+        addedKey[rootKey] = value;
+        if (_.isObject(retVal[key])) {
+          _.assign(retVal[key], addedKey);
+        } else {
+          retVal[key] = addedKey;
+        }
+      }
+    }
+  }
+  return retVal;
+}
+
+// Make the key at the top level (such as pop type) as a property of the inner level
 function lower(top: any, loweringKey: string): any {
   // Top of the object - want to take these entries and lower them
   Object.entries(top).reduce((prior, current, {}, {}) => {
@@ -190,12 +211,12 @@ function lower(top: any, loweringKey: string): any {
   }, {});
 }
 
-interface ProvinceDefinition {
+export interface ProvinceDefinition {
   province: number,
   red: number,
   green: number,
   blue: number,
-  x: string,
+  name: string,
 }
 
 export function rgbToHex(array: number[]): string {
@@ -206,7 +227,7 @@ export function rgbToHex(array: number[]): string {
 function makeProvinceLookup(definitions: ProvinceDefinition[]): any {
   const retVal = definitions.map((definition, index, array) => {
     const hex = rgbToHex([definition.red, definition.green, definition.blue]);
-    return [hex, definition.province]
+    return [hex, definition]
   });
   return Object.fromEntries(retVal);
 }
@@ -216,73 +237,195 @@ interface URLCachedImage {
   url: string;
 }
 
+export async function makeTargaImage(configuration: VickyGameConfiguration, tag: string): Promise<string | undefined> {
+  const fileDirectoryHandle = configuration.flagSources?.get(tag);
+  if (_.isUndefined(fileDirectoryHandle)) {
+    return undefined;
+  }
+  const tga = new TGA(new Buffer(await fileDirectoryHandle.arrayBuffer()));
+  const image = new Image(tga.width, tga.height, tga.pixels, {
+    // @ts-ignore
+    colorModel: 'RGB',
+    bitDepth: 8,
+    alpha: 1,
+  })
+
+  return image.toDataURL();
+}
+
 export class VickyGameConfiguration {
+  // Source files of flags
+  flagSources?: Map<string, FileWithDirectoryHandle>;
+  // Localisation key to localisation language object
+  localisationSet?: any;
   // Ideology to ideology object map
   ideologies?: any;
   provinceMap?: URLCachedImage;
   provinceLookup?: any;
+  countries?: any;
 
-  private constructor(ideologies?: any, provinceMap?: URLCachedImage, provinceLookup?: any) {
+  private constructor(flagSources?: Map<string, FileWithDirectoryHandle>, localisationSet?: any, ideologies?: any, provinceMap?: URLCachedImage, provinceLookup?: any, countries?: any) {
+    this.flagSources = flagSources;
+    this.localisationSet = localisationSet;
     this.ideologies = ideologies;
     this.provinceMap = provinceMap;
     this.provinceLookup = provinceLookup;
+    this.countries = countries;
+  }
+
+  static async makeIdeologies(fileDirectoryHandle: FileWithDirectoryHandle): Promise<any> {
+    const ideologyText = await fileDirectoryHandle.text()
+    const ideologyData = v2parser.parse(ideologyText);
+    return lower(ideologyData, "group");
+  }
+
+  static async makeMap(fileDirectoryHandle: FileWithDirectoryHandle): Promise<URLCachedImage> {
+    const middleMapImage = await fileDirectoryHandle.arrayBuffer().then(Image.load);
+    // @ts-ignore
+    middleMapImage.flipY();
+    return {
+      original: middleMapImage,
+      url: middleMapImage.toDataURL(),
+    };
+  }
+
+  static async makeCountries(fileDirectoryHandle: FileWithDirectoryHandle, directory: FileWithDirectoryHandle[]): Promise<any> {
+    const countries = await fileDirectoryHandle.text();
+    const mapper = new Map<string, string>();
+    const parsed = v2parser.parse(countries);
+    // Make paths absolute
+    const countriesTest = new RegExp('^countries/');
+    for (const key in parsed) {
+      if (parsed.hasOwnProperty(key)) {
+        const countryCleaned = parsed[key].replace(countriesTest, "");
+        parsed[key] = countryCleaned;
+        mapper.set(countryCleaned, key);
+      }
+    }
+    for (const fileDirectoryHandle of directory) {
+      const tag = mapper.get(fileDirectoryHandle.name);
+      if (tag) {
+        // Yay! Replace with country definition
+        console.log(countries);
+        parsed[tag] = v2parser.parse(await fileDirectoryHandle.text());
+      }
+    }
+    console.log(parsed);
+    return parsed;
+  }
+
+  static makeLocalization(fileDirectoryHandle: FileWithDirectoryHandle): Promise<any> {
+    const dankness = new Promise((complete, error) => {
+      Papa.parse(fileDirectoryHandle, {
+        header: false, // headers overwrite
+        complete(results: ParseResult<[string, string, string, string, string | undefined, string]>, file?: File) {
+          let localisationGroup = {}
+          for (const localisation of results.data) {
+            const [key, english, french, german, unknown, spanish] = localisation;
+            if (key.trim().length > 0) {
+              localisationGroup[key] = {
+                "english": english,
+                "french": french,
+                "german": german,
+                "spanish": spanish,
+              }
+            }
+          }
+          complete(localisationGroup);
+        },
+        error,
+      });
+    });
+    return dankness;
   }
 
   public static async createSave(saveDirectory: FileWithDirectoryHandle[]): Promise<VickyGameConfiguration> {
-    let promises: Promise<any>[] = Array(3).fill(Promise.reject(new Error("File not found")));
+    let promises: (Promise<any> | null)[] = Array(4).fill(null);
+    const flagTest = new RegExp('^[A-Z]{3,}(?:_[a-zA-Z]+)?\\.tga$');
+
+    let localisations: [Promise<any>, FileWithDirectoryHandle][] = [];
+    let flagFiles = new Map<string, FileWithDirectoryHandle>();
     for (const fileDirectoryHandle of saveDirectory) {
       console.log("Found " + fileDirectoryHandle.name);
       if (fileDirectoryHandle.name == "ideologies.txt") {
-        console.log("Found it");
-        promises[0] = fileDirectoryHandle.text();
+        console.log("Found ideologies");
+        promises[0] = this.makeIdeologies(fileDirectoryHandle);
       } else if (fileDirectoryHandle.name == "provinces.bmp") {
         // Province locations and colors
         console.log("Found map");
-        promises[1] = fileDirectoryHandle.arrayBuffer().then(Image.load);
+        promises[1] = this.makeMap(fileDirectoryHandle);
       } else if (fileDirectoryHandle.name == "definition.csv") {
+        console.log("Found province definitions");
         // Province definition
         promises[2] = new Promise((complete, error) => {
           Papa.parse(fileDirectoryHandle, {
-            header: true,
-            complete(results: ParseResult<ProvinceDefinition>, file?: File) {
-              complete(results.data);
+            header: false, // headers overwrite
+            complete(results: ParseResult<[number, number, number, number, string, 'x']>, file?: File) {
+              const result = results.data.map((current, index, array) => {
+                const [province, r, g, b, provinceName] = current;
+                return {
+                  province: province,
+                  red: r,
+                  green: g,
+                  blue: b,
+                  name: provinceName,
+                }
+              });
+              complete(result);
             },
             error,
           });
         });
+      } else if (fileDirectoryHandle.name == "countries.txt") {
+        console.log("Found country definitions");
+        promises[3] = this.makeCountries(fileDirectoryHandle, saveDirectory);
+      } else if (fileDirectoryHandle.directoryHandle?.name.includes("localisation")) {
+        localisations.push([this.makeLocalization(fileDirectoryHandle), fileDirectoryHandle]);
+      } else if (flagTest.test(fileDirectoryHandle.name)) {
+        flagFiles.set(fileDirectoryHandle.name.substring(0, fileDirectoryHandle.name.length - 4), fileDirectoryHandle);
       }
     }
+
+    console.log(flagFiles);
+
+    localisations.sort(([{}, a], [{}, b]) => a.name.localeCompare(b.name));
+    let localisationSet = {};
+    for (const [localisation, {}] of localisations) {
+      try {
+        _.assign(localisationSet, await localisation);
+      } catch (error) {
+        console.log("Error assigning stuff, I'm stuff, so is " + error);
+      }
+    }
+    console.log(localisationSet);
+
     for (const promise of promises) {
-      promise.catch(reason => {
+      promise?.catch(reason => {
         console.error("Error loading: " + reason);
       })
     }
-    const results = await Promise.allSettled(promises);
+    const results = await Promise.allSettled(promises.map(x => x ?? Promise.reject("Can't find")));
 
-    const [ideologyText, rawMapImage, provinceDefinitionsMaybe] = results;
+    const [ideologyText, rawMapImage, provinceDefinitionsMaybe, countriesMaybe] = results;
     let ideologies: any | undefined = undefined;
     let mapImage: URLCachedImage | undefined = undefined;
     let provinceLookup: any | undefined = undefined;
+    let countries: any | undefined = undefined;
     if (ideologyText.status == "fulfilled") {
-      const ideologyData = v2parser.parse(ideologyText.value);
-      console.log(ideologyData);
-      ideologies = lower(ideologyData, "group");
+      ideologies = ideologyText;
+    }
+    if (countriesMaybe.status == "fulfilled") {
+      countries = countriesMaybe.value;
     }
     if (rawMapImage.status == "fulfilled") {
-      let middleMapImage = rawMapImage.value;
-      // @ts-ignore
-      middleMapImage.flipY();
-      mapImage = {
-        original: middleMapImage,
-        url: middleMapImage.toDataURL(),
-      };
+      mapImage = rawMapImage.value;
     }
-    if (provinceDefinitionsMaybe.status == "fulfilled") {
+    if (provinceDefinitionsMaybe.status == "fulfilled" && provinceDefinitionsMaybe.value) {
       let provinceDefinitions = provinceDefinitionsMaybe.value;
       provinceLookup = makeProvinceLookup(provinceDefinitions);
-      console.log(provinceLookup);
     }
-    return new VickyGameConfiguration(ideologies, mapImage, provinceLookup);
+    // const localisationLanguages = swapPrimaryKey(localisationSet);
+    return new VickyGameConfiguration(flagFiles.size == 0 ? undefined : flagFiles, Object.keys(localisationSet).length == 0 ? undefined : localisationSet, ideologies, mapImage, provinceLookup, countries);
   }
 }
 

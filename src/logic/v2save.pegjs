@@ -82,5 +82,5 @@ Atomic "atomic"
   = _ elems:$[^ \n\r\t=}{]+ { return elems; }
 
 _ "whitespace"
-  = "#"[^\n\r]*[\n\r]
+  = "#"[^\n\r]*_
   / [ \t\n\r]*
