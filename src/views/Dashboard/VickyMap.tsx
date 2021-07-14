@@ -5,7 +5,7 @@ import ReactTooltip from "react-tooltip";
 import {ProvinceDefinition, rgbToHex} from "../../logic/vickyObjects";
 import ProvinceTooltip from "../MapPage/ProvinceTooltip";
 import _ from "lodash";
-import {Country} from "../../logic/vickyFileStructures";
+import {Country} from "../../logic/types/vickyCountryDefinition";
 
 function relativeCoords(event: React.MouseEvent<HTMLImageElement, MouseEvent>) {
   let bounds = event.currentTarget.getBoundingClientRect();
@@ -29,7 +29,7 @@ export default function VickyMap() {
     const pixel = configuration?.provinceMap?.original.getPixelXY(Math.trunc(coords.x), Math.trunc(coords.y));
     if (pixel && configuration?.provinceLookup) {
       const hex = rgbToHex(pixel);
-      const province: ProvinceDefinition = configuration.provinceLookup[hex];
+      const province = configuration.provinceLookup[hex] ?? null;
       useSelectedProvince(province)
     }
   }, [useSelectedProvince, configuration]);
@@ -46,7 +46,7 @@ export default function VickyMap() {
       const countryMaybe = countries[province["owner"]];
       if (_.isObject(countryMaybe)) {
         owningCountry = countryMaybe as Country;
-        const newBackgroundColor = ("#" + rgbToHex(owningCountry.color) + "FF").toUpperCase();
+        const newBackgroundColor = ("#" + rgbToHex(owningCountry.color).toString(16) + "FF").toUpperCase();
         backgroundColor = newBackgroundColor;
       }
     }

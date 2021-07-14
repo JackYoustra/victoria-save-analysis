@@ -1,7 +1,13 @@
 import {useSave} from "../../logic/VickySavesProvider";
 import React, {useEffect, useState} from "react";
-import {makeTargaImage, ProvinceDefinition, VickyGameConfiguration} from "../../logic/vickyObjects";
-import {Country} from "../../logic/vickyFileStructures";
+import {
+  makeFlagImage,
+  makeTerrainImage,
+  ProvinceDefinition,
+  rgbToHex,
+  VickyGameConfiguration
+} from "../../logic/vickyObjects";
+import {Country} from "../../logic/types/vickyCountryDefinition";
 import _ from "lodash";
 
 export interface ProvinceTooltipProps {
@@ -16,6 +22,7 @@ export default function ProvinceTooltip(props: ProvinceTooltipProps) {
 
   let countryName: string = "No owner";
   let [countryFlagURL, useCountryFlagURL] = useState<React.ReactElement | null>(null);
+  let [terrainURL, useTerrainURL] = useState<string | null>(null);
   if (_.isObject(props.fullProvince)) {
     const tag = props.fullProvince["owner"];
     if (_.isString(tag)) {
@@ -36,15 +43,23 @@ export default function ProvinceTooltip(props: ProvinceTooltipProps) {
   }
 
   useEffect(() => {
-    if (_.isObject(props.fullProvince)) {
-      const tag = props.fullProvince["owner"];
-      if (_.isString(tag) && configuration) {
-        makeTargaImage(configuration, tag).then((url) => {
-          if (_.isString(url)) {
-            useCountryFlagURL(<img src={url} alt={tag + " flag"}/>);
-          }
-        });
+    if (configuration) {
+      if (_.isObject(props.fullProvince)) {
+        const tag = props.fullProvince["owner"];
+        if (_.isString(tag)) {
+          makeFlagImage(configuration, tag).then((url) => {
+            if (_.isString(url)) {
+              useCountryFlagURL(<img style={{borderStyle: "outset"}} src={url} alt={tag + " flag"}/>);
+            }
+          });
+        }
       }
+      makeTerrainImage(configuration, props.selectedProvince.province).then(url => {
+        if (_.isString(url)) {
+          // useTerrainURL(<img style={{position: "absolute", zIndex: -1, top: 0, left: 0}} src={url} alt={"Terrain: " + configuration.terrainLookup?.get(props.selectedProvince.province) ?? "unknown"}/>);
+          useTerrainURL(url);
+        }
+      })
     }
     useCountryFlagURL(null);
   }, [configuration, props.fullProvince]);
@@ -53,10 +68,31 @@ export default function ProvinceTooltip(props: ProvinceTooltipProps) {
       {props.selectedProvince.province + "-" + props.selectedProvince.name}
     </span>);
 
+  let css: React.CSSProperties = {
+    position: "relative",
+    display: "inline-block",
+    backgroundRepeat: "no-repeat",
+    backgroundSize: "cover",
+    padding: "10pt",
+    minWidth: "300pt",
+    backgroundPosition: "center",
+  };
+
+  if (terrainURL) {
+    css.backgroundImage = `url(${terrainURL})`;
+  }
+
+  if (props.owningCountry) {
+    const backgroundColor = ("#" + rgbToHex(props.owningCountry.color).toString(16) + "FF").toUpperCase();
+    css.borderColor = backgroundColor;
+    css.borderStyle = "solid";
+  }
+
   if (props.fullProvince) {
     return (
-      <>
-        <h1>
+      <div style={css}>
+        {/*<img style={{position: "absolute", zIndex: -1, top: 0, left: 0}} src={terrainURL} alt={"Terrain"}/>*/}
+        <h1 style={{display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10pt"}}>
           {props.fullProvince["name"]}
           {countryFlagURL}
         </h1>
@@ -64,7 +100,7 @@ export default function ProvinceTooltip(props: ProvinceTooltipProps) {
           {countryName}
         </h3>
         {fallback}
-      </>
+      </div>
     );
   }
   return (
