@@ -67,8 +67,8 @@ ID
 Value
   = Literal
   / _ d:Date { return d; } // Have to parse unquoted date first because ambiguous with other entries
-  / _ floating:$([0-9]+"."[0-9]+) { return parseFloat(floating); }
-  / _ integer:$([0-9]+) { return parseInt(integer); }
+  / _ floating:$([-]?[0-9]+"."[0-9]+) { return parseFloat(floating); }
+  / _ integer:$([-]?[0-9]+) { return parseInt(integer); }
   / _ "\""d:Date"\"" { return d; }
   / Atomic
 
