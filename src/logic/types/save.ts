@@ -34,7 +34,7 @@ import {
 } from "./vanillaConfigurations";
 import {Artisan, Freeman, MiddleClass, POP, UpperClass} from "./pops";
 
-type VickyDate = string;
+type VickyDate = Date;
 
 export interface Save {
   [province_id: number]: Province;

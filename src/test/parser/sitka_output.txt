@@ -797,8 +797,8 @@
          "id": 84399,
          "type": 4713
       },
-      "start_date": "1920.4.14",
-      "date": "1922.4.4",
+      "start_date": "1920-04-14T08:00:00.000Z",
+      "date": "1922-04-04T08:00:00.000Z",
       "location": 1,
       "country": "USA",
       "building": 33
@@ -846,8 +846,8 @@
    },
    "life_rating": 20,
    "infrastructure": 0.8,
-   "last_imigration": "1921.12.29",
-   "last_controller_change": "1901.2.21",
+   "last_imigration": "1921-12-29T08:00:00.000Z",
+   "last_controller_change": "1901-02-21T08:00:00.000Z",
    "party_loyalty": [
       {
          "ideology": "conservative",
