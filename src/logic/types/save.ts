@@ -183,7 +183,7 @@ export interface Country {
   trade?:                               { [key: string]: Trade };
   civilized?:                           StringBoolean;
   last_greatness_date?:                 string;
-  state?:                               StateElement[] | StateElement;
+  state?:                               State[] | State;
   badboy?:                              number;
   tariffs?:                             number;
   trade_cap_land?:                      number;
@@ -752,10 +752,10 @@ export interface SiegeCombatAttacker {
   back:               EmptySet;
 }
 
-export interface StateElement {
+export interface State {
   id:               IDElement;
   provinces:        number[];
-  state_buildings?: StateBuilding[] | StateBuilding;
+  state_buildings?: Factory[] | Factory;
   savings:          number;
   interest:         number;
   flashpoint?:      StringBoolean;
@@ -779,11 +779,11 @@ export interface Popproject {
   province?:   number;
 }
 
-export interface StateBuilding {
+export interface Factory {
   building:                FactoryType | string;
   level:                   number;
   stockpile:               { [key: string]: number };
-  employment:              StateBuildingEmployment;
+  employment:              FactoryEmployment;
   money:                   number;
   last_spending:           number;
   last_income:             number;
@@ -799,17 +799,17 @@ export interface StateBuilding {
   profit_history_current:  number;
   profit_history_entry:    number[];
   construction_time_left?: number;
-  input_goods?:            StateBuildingInputGoods;
+  input_goods?:            FactoryInputGoods;
   priority?:               number;
   days_without_input?:     number;
 }
 
-export interface StateBuildingEmployment {
+export interface FactoryEmployment {
   state_province_id: number;
   employees?:        Employee[] | Employee;
 }
 
-export interface StateBuildingInputGoods {
+export interface FactoryInputGoods {
   goods_demand: { [good: string]: number };
   input_goods:  { [good: string]: number };
   money:        number;

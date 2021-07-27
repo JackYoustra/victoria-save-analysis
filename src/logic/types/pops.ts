@@ -1,5 +1,6 @@
-import {IDElement} from "./save";
+import {IDElement, Province} from "./save";
 import {ProductionType, SchoolReforms} from "./vanillaConfigurations";
+import {box} from "../collections/collections";
 
 export interface POP {
   id:              number;
@@ -56,4 +57,21 @@ export interface Artisan extends MiddleClass {
   throttle?:              number;
   needs_cost?:            number;
   production_income?:     number;
+}
+
+export function popsIn(province: Province): POP[] {
+  return [
+    box(province.aristocrats),
+    box(province.capitalists),
+    box(province.artisans),
+    box(province.bureaucrats),
+    box(province.clergymen),
+    box(province.clerks),
+    box(province.craftsmen),
+    box(province.labourers),
+    box(province.farmers),
+    box(province.officers),
+    box(province.soldiers),
+    box(province.slaves),
+  ].flat();
 }

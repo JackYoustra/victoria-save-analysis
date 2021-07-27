@@ -1,18 +1,21 @@
 import {useSave} from "../../logic/VickySavesProvider";
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import {
   makeFlagImage,
   makeTerrainImage,
   ProvinceDefinition,
   rgbToHex,
   VickyGameConfiguration
-} from "../../logic/vickyObjects";
+} from "../../logic/processing/vickyConfiguration";
 import {Country} from "../../logic/types/vickyCountryDefinition";
 import _ from "lodash";
+import {Province, State} from "../../logic/types/save";
+import {Freeman, popsIn} from "../../logic/types/pops";
+import {box} from "../../logic/collections/collections";
 
 export interface ProvinceTooltipProps {
   selectedProvince: ProvinceDefinition,
-  fullProvince?: any,
+  fullProvince?: Province,
   owningCountry?: Country,
 }
 
@@ -24,7 +27,7 @@ export default function ProvinceTooltip(props: ProvinceTooltipProps) {
   let [countryFlagURL, useCountryFlagURL] = useState<React.ReactElement | null>(null);
   let [terrainURL, useTerrainURL] = useState<string | null>(null);
   if (_.isObject(props.fullProvince)) {
-    const tag = props.fullProvince["owner"];
+    const tag = props.fullProvince?.owner;
     if (_.isString(tag)) {
       countryName = tag;
       if (configuration) {
@@ -45,7 +48,7 @@ export default function ProvinceTooltip(props: ProvinceTooltipProps) {
   useEffect(() => {
     if (configuration) {
       if (_.isObject(props.fullProvince)) {
-        const tag = props.fullProvince["owner"];
+        const tag = props.fullProvince?.owner;
         if (_.isString(tag)) {
           makeFlagImage(configuration, tag).then((url) => {
             if (_.isString(url)) {
@@ -63,6 +66,28 @@ export default function ProvinceTooltip(props: ProvinceTooltipProps) {
     }
     useCountryFlagURL(null);
   }, [configuration, props.fullProvince]);
+
+  const [reserves, income] = useMemo(() => {
+    if (props.fullProvince) {
+      let money = (popsIn(props.fullProvince) as unknown as Freeman[])
+        .reduce((previousValue, currentValue) => previousValue + currentValue.money + (currentValue.bank ?? 0), 0);
+
+      let income = box(props.fullProvince.artisans).reduce(
+        (previousValue, currentValue) => previousValue + (currentValue.production_income ?? 0), props.fullProvince.rgo?.last_income ?? 0);
+
+      const province_id = props.selectedProvince.province - 1;
+      const state: State = save.provinceOwnerLookup[province_id];
+      for (const building of box(state.state_buildings)) {
+        // location, not pop, basis, so just check its actual residency
+        if (building.employment.state_province_id) {
+          money += building.money;
+          income += building.last_income;
+        }
+      }
+      return [money, income];
+    }
+    return [0, 0];
+  }, [props.fullProvince]);
 
   const fallback = (<span>
       {props.selectedProvince.province + "-" + props.selectedProvince.name}
@@ -93,12 +118,18 @@ export default function ProvinceTooltip(props: ProvinceTooltipProps) {
       <div style={css}>
         {/*<img style={{position: "absolute", zIndex: -1, top: 0, left: 0}} src={terrainURL} alt={"Terrain"}/>*/}
         <h1 style={{display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10pt"}}>
-          {props.fullProvince["name"]}
+          {props.fullProvince.name}
           {countryFlagURL}
         </h1>
         <h3>
           {countryName}
         </h3>
+        <h4>
+          {"Direct income: " + income}
+        </h4>
+        <h4>
+          {"Direct reserves: " + reserves}
+        </h4>
         {fallback}
       </div>
     );

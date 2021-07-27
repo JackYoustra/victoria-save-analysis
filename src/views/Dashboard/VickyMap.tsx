@@ -2,10 +2,11 @@ import React, {MouseEventHandler, useCallback, useEffect, useRef, useState} from
 import {useSave} from "../../logic/VickySavesProvider";
 import {makeStyles} from "@material-ui/core/styles";
 import ReactTooltip from "react-tooltip";
-import {ProvinceDefinition, rgbToHex} from "../../logic/vickyObjects";
+import {ProvinceDefinition, rgbToHex} from "../../logic/processing/vickySave";
 import ProvinceTooltip from "../MapPage/ProvinceTooltip";
 import _ from "lodash";
 import {Country} from "../../logic/types/vickyCountryDefinition";
+import {Province} from "../../logic/types/save";
 
 function relativeCoords(event: React.MouseEvent<HTMLImageElement, MouseEvent>) {
   let bounds = event.currentTarget.getBoundingClientRect();
@@ -35,7 +36,7 @@ export default function VickyMap() {
   }, [useSelectedProvince, configuration]);
 
   let backgroundColor: string | undefined = undefined;
-  let province: any | undefined = undefined;
+  let province: Province | undefined = undefined;
   let owningCountry: Country | undefined = undefined;
 
   const countries = configuration?.countries;

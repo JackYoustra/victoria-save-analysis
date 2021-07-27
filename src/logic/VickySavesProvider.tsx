@@ -1,5 +1,5 @@
 import React from "react";
-import VickyContext, {VickyGameConfiguration, VickySave} from "./vickyObjects";
+import VickyContext, {VickyGameConfiguration, VickySave} from "./processing/vickySave";
 import _ from "lodash";
 
 type Action = {type: 'setSave', value: VickySave} | {type: 'mergeConfiguration', value: VickyGameConfiguration}

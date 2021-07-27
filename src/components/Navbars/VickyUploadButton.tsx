@@ -1,7 +1,7 @@
 import React, {useRef, useState} from "react";
 import {createStyles, makeStyles, Theme} from "@material-ui/core/styles";
 import v2parser from "../../logic/v2parser";
-import {VickySave} from "../../logic/vickyObjects";
+import {VickySave} from "../../logic/processing/vickySave";
 import CircularIntegration, {ProcessTypes} from "../CustomInput/Progress";
 import _ from "lodash";
 import {useSave} from "../../logic/VickySavesProvider";
