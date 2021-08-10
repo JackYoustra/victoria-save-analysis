@@ -1,9 +1,9 @@
 import React, {useRef, useState} from "react";
 import {createStyles, makeStyles, Theme} from "@material-ui/core/styles";
-import {VickyGameConfiguration} from "../../logic/processing/vickySave";
 import CircularIntegration, {ProcessTypes} from "../CustomInput/Progress";
 import {useSave} from "../../logic/VickySavesProvider";
 import {directoryOpen} from "browser-fs-access";
+import {VickyGameConfiguration} from "../../logic/processing/vickyConfiguration";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({

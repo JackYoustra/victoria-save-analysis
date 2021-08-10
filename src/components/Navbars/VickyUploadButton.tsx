@@ -58,7 +58,7 @@ export default function VickyUploadButton() {
       reader.onerror = (progressEvent) => {
         console.log("Error loading!");
       };
-      reader.readAsText(file);
+      reader.readAsText(file, 'ISO-8859-1');
     } else {
       setProcessState(ProcessTypes.Cancelled);
     }

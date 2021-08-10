@@ -76,8 +76,8 @@ export default function ProvinceTooltip(props: ProvinceTooltipProps) {
         (previousValue, currentValue) => previousValue + (currentValue.production_income ?? 0), props.fullProvince.rgo?.last_income ?? 0);
 
       const province_id = props.selectedProvince.province - 1;
-      const state: State = save.provinceOwnerLookup[province_id];
-      for (const building of box(state.state_buildings)) {
+      const state: State | undefined = save?.views.provinces[province_id].jurisdiction;
+      for (const building of box(state?.state_buildings)) {
         // location, not pop, basis, so just check its actual residency
         if (building.employment.state_province_id) {
           money += building.money;

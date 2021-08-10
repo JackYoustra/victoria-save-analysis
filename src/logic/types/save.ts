@@ -80,6 +80,7 @@ export interface Save {
 }
 
 export interface War {
+  name:               string;
   history:            History;
   attacker:           string[] | string;
   defender:           string[] | string;
@@ -277,8 +278,8 @@ export interface History {
   name?:         string;
   battle?:       Battle[] | Battle;
   // [date: VickyDate]: HistoryElement[] | HistoryElement
-  //   // Not used, needed for type system
-  //   | Battle[] | Battle | string | undefined;
+    // Not used, needed for type system
+    // | Battle[] | Battle | string | undefined;
 }
 
 export interface HistoryElement {
@@ -286,7 +287,6 @@ export interface HistoryElement {
   rem_attacker?: string;
   add_attacker?: string;
   add_defender?: string;
-  battle?: Battle;
   war_goal?: WarGoal;
 }
 
@@ -309,7 +309,8 @@ export interface Combatant {
   country: string;
   leader:  string;
   losses:  number;
-  // [unitName: string]: number;
+  // Guaranteed to only be number
+  [unitName: string]: number | string;
 }
 
 export interface Goal {

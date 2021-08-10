@@ -10,6 +10,7 @@ export interface POP {
   ideology:        { [key: string]: number };
   issues:          { [key: string]: number };
   literacy:        number;
+  // This isn't globally unique random value, just a seed used in Vicky
   random:          number;
   mil?:            number;
   con_factor?:     number;
@@ -60,6 +61,24 @@ export interface Artisan extends MiddleClass {
 }
 
 export function popsIn(province: Province): POP[] {
+  return [
+    box(province.aristocrats),
+    box(province.capitalists),
+    box(province.artisans),
+    box(province.bureaucrats),
+    box(province.clergymen),
+    box(province.clerks),
+    box(province.craftsmen),
+    box(province.labourers),
+    box(province.farmers),
+    box(province.officers),
+    box(province.soldiers),
+    box(province.slaves),
+  ].flat();
+}
+
+// Holds the most expansive version of the pops type
+export function expansivePopsIn(province: Province): Artisan[] {
   return [
     box(province.aristocrats),
     box(province.capitalists),
