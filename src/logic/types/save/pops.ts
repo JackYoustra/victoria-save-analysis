@@ -1,6 +1,6 @@
 import {IDElement, Province} from "./save";
 import {ProductionType, SchoolReforms} from "./vanillaConfigurations";
-import {box} from "../collections/collections";
+import {box} from "../../collections/collections";
 
 export interface POP {
   id:              number;

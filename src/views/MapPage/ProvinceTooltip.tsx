@@ -7,10 +7,10 @@ import {
   rgbToHex,
   VickyGameConfiguration
 } from "../../logic/processing/vickyConfiguration";
-import {Country} from "../../logic/types/vickyCountryDefinition";
+import {Country} from "../../logic/types/save/vickyCountryDefinition";
 import _ from "lodash";
-import {Province, State} from "../../logic/types/save";
-import {Freeman, popsIn} from "../../logic/types/pops";
+import {Province, State} from "../../logic/types/save/save";
+import {Freeman, popsIn} from "../../logic/types/save/pops";
 import {box} from "../../logic/collections/collections";
 
 export interface ProvinceTooltipProps {

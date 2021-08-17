@@ -1,7 +1,7 @@
 import _, {omit} from "lodash";
-import {Country, HistoryElement, Province, Save, State, War} from "../types/save";
+import {Country, HistoryElement, Province, Save, State, War} from "../types/save/save";
 import {box} from "../collections/collections";
-import {expansivePopsIn, popsIn} from "../types/pops";
+import {expansivePopsIn, popsIn} from "../types/save/pops";
 import glpk from "glpk.js";
 
 declare global {

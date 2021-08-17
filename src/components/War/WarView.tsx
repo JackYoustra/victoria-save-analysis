@@ -1,6 +1,6 @@
 import React, {useCallback} from "react";
 import {parseDate, ProcessWar} from "../../logic/processing/vickySave";
-import {War} from "../../logic/types/save";
+import {War} from "../../logic/types/save/save";
 import _ from "lodash";
 import { localize } from "./wikiFormatters";
 import ParticipantElement from "./ParticipantElement";

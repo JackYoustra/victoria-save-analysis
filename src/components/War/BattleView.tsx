@@ -1,4 +1,4 @@
-import {Battle, Combatant} from "../../logic/types/save";
+import {Battle, Combatant} from "../../logic/types/save/save";
 import React from "react";
 import {localize} from "./wikiFormatters";
 import ParticipantElement from "./ParticipantElement";

@@ -1,5 +1,5 @@
 import {ProcessWar} from "../../logic/processing/vickySave";
-import {HistoryElement, War} from "../../logic/types/save";
+import {HistoryElement, War} from "../../logic/types/save/save";
 
 
 test('Unit history test', () => {

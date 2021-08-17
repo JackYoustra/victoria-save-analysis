@@ -2,7 +2,7 @@ import React, {useState} from "react";
 import {useSave} from "../../logic/VickySavesProvider";
 import VickyContext from "../../logic/processing/vickyContext";
 import {box} from "../../logic/collections/collections";
-import {War} from "../../logic/types/save";
+import {War} from "../../logic/types/save/save";
 import WarView from "../../components/War/WarView";
 import BattleView from "../../components/War/BattleView";
 

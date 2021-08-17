@@ -1,7 +1,7 @@
 import v2parser from "../../logic/v2parser";
 import * as fs from 'fs';
 import _ from "lodash";
-import {Province} from "../../logic/types/save";
+import {Province} from "../../logic/types/save/save";
 import {dateParser} from "../utilities";
 
 const sample_province = fs.readFileSync("src/test/parser/sitka_input.txt").toString();

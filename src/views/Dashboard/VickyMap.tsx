@@ -4,8 +4,8 @@ import {makeStyles} from "@material-ui/core/styles";
 import ReactTooltip from "react-tooltip";
 import ProvinceTooltip from "../MapPage/ProvinceTooltip";
 import _ from "lodash";
-import {Country} from "../../logic/types/vickyCountryDefinition";
-import {Province} from "../../logic/types/save";
+import {Country} from "../../logic/types/save/vickyCountryDefinition";
+import {Province} from "../../logic/types/save/save";
 import {ProvinceDefinition, rgbToHex} from "../../logic/processing/vickyConfiguration";
 
 function relativeCoords(event: React.MouseEvent<HTMLImageElement, MouseEvent>) {
