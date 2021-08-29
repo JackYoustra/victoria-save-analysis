@@ -46,7 +46,7 @@ EntryGroup
 
 Entry
  = current:Line { return current; }
- / identifier:ID _ "{" _ e:EntryGroup "}" _ { return [identifier, e]; } // meaningful trees, named lists
+ / identifier:ID _ "{" _ e:EntryGroup _  "}" _ { return [identifier, e]; } // meaningful trees, named lists
  / identifier:ID _ "{" _ arr:List _ "}" _ { return [identifier, arr]; } // named lists
  / _ "{" _ arr:EntryGroup _ "}" _ { return arr; } // anonymous composites.
  / _ "{" _ arr:List _ "}" _ { return arr; } // anonymous lists.
@@ -82,5 +82,5 @@ Atomic "atomic"
   = _ elems:$[^ \n\r\t=}{]+ { return elems; }
 
 _ "whitespace"
-  = "#"[^\n\r]*_
+  = [\n\r]*"#"[^\n\r]*_
   / [ \t\n\r]*

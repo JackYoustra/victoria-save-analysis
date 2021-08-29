@@ -30,8 +30,9 @@ import Typography from "views/Typography/Typography.js";
 import Icons from "views/Icons/Icons.js";
 import NotificationsPage from "views/Notifications/Notifications.js";
 import UpgradeToPro from "views/UpgradeToPro/UpgradeToPro.js";
-import {SentimentVeryDissatisfied} from "@material-ui/icons";
+import {Business, SentimentVeryDissatisfied} from "@material-ui/icons";
 import WarsView from "./views/Wars/Wars";
+import FactoryPage from "./views/Factories/FactoryPage";
 
 const dashboardRoutes = [
   {
@@ -53,6 +54,13 @@ const dashboardRoutes = [
     name: "Wars",
     icon: SentimentVeryDissatisfied,
     component: WarsView,
+    layout: "/victoria-save-analysis",
+  },
+  {
+    path: "/factory",
+    name: "Factory",
+    icon: Business,
+    component: FactoryPage,
     layout: "/victoria-save-analysis",
   },
   {

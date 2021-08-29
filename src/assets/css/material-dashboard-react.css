@@ -156,6 +156,10 @@ legend {
   outline: 0;
 }
 
+td {
+  vertical-align: top;
+}
+
 a:focus,
 a:active,
 button:active,

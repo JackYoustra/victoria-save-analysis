@@ -5,6 +5,7 @@ import _ from "lodash";
 import { localize } from "./wikiFormatters";
 import ParticipantElement from "./ParticipantElement";
 import CasualtyList from "./CasualtyList";
+import {useSave} from "../../logic/VickySavesProvider";
 
 const headerStyle: React.CSSProperties = {
   backgroundColor: "#C3D6EF",
@@ -20,11 +21,28 @@ interface WarViewProps {
 
 export default function WarView(props: WarViewProps) {
   const { war: war, onHover: onHover } = props;
+  const save = useSave().state.save;
 
   const mouseOver = () => onHover(war);
 
-
   const belligerentTerms = ProcessWar(war);
+
+  function primaryCause() {
+    if (war.original_wargoal.casus_belli) {
+      let name: string | undefined;
+      if (war.original_wargoal.state_province_id && save) {
+        name = save.provinces[war.original_wargoal.state_province_id - 1].name;
+      } else {
+        name = undefined;
+      }
+      return <tr>
+        <th>Primary Cause</th>
+        <td>{war.original_wargoal.casus_belli + name}</td>
+      </tr>;
+    }
+    return null;
+  }
+
   return (
     <div style={{whiteSpace: "pre-wrap"}} onMouseOver={mouseOver}>
       <table style={{
@@ -68,6 +86,7 @@ export default function WarView(props: WarViewProps) {
               {/*  <th>Location</th>*/}
               {/*  <td>Look at the provinces for the continents fought on</td>*/}
               {/*</tr>*/}
+              {primaryCause()}
               {/*<tr>*/}
               {/*  <th>Result</th>*/}
               {/*  <td>Unknown (no information in save file and no heuristics)</td>*/}
@@ -82,11 +101,19 @@ export default function WarView(props: WarViewProps) {
         <tr>
           <td style={{display: "table-cell"}}>
             <b>Attackers</b>
-            {ParticipantElement({terms: belligerentTerms.attacker.term, start: belligerentTerms.start, end: belligerentTerms.end})}
+            {ParticipantElement({
+              terms: belligerentTerms.attacker.term,
+              start: belligerentTerms.start,
+              end: belligerentTerms.end
+            })}
           </td>
           <td>
             <b>Defenders</b>
-            {ParticipantElement({terms: belligerentTerms.defender.term, start: belligerentTerms.start, end: belligerentTerms.end})}
+            {ParticipantElement({
+              terms: belligerentTerms.defender.term,
+              start: belligerentTerms.start,
+              end: belligerentTerms.end
+            })}
           </td>
         </tr>
         {/*<tr>*/}

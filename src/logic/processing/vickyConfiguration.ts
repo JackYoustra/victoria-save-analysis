@@ -1,11 +1,12 @@
 import Image from "image-js";
-import {TerrainInfo} from "../types/vickyTerrainDefinition";
+import {TerrainInfo} from "../types/configuration/vickyTerrainDefinition";
 import _ from "lodash";
 import {terrainForColor} from "../TerrainPalette";
 import {FileWithDirectoryHandle} from "browser-fs-access";
 import v2parser from "../v2parser";
 import Papa, {ParseResult} from "papaparse";
 import TGA from "tga";
+import {string} from "prop-types";
 
 // {a: {b: c, d: e}}
 // {b: {a: c}, d: {a: e}}
@@ -201,8 +202,9 @@ export class VickyGameConfiguration {
   // Hex definition to the color of the province
   provinceLookup?: ProvinceLookup;
   countries?: any;
+  poptypes?: { [poptype: string]: any }
 
-  private constructor(flagSources?: Map<string, FileWithDirectoryHandle>, terrainSources?: Map<string, FileWithDirectoryHandle>, localisationSet?: any, ideologies?: any, provinceMap?: URLCachedImage, terrainLookup?: Map<number, string>, provinceLookup?: ProvinceLookup, countries?: any) {
+  private constructor(flagSources?: Map<string, FileWithDirectoryHandle>, terrainSources?: Map<string, FileWithDirectoryHandle>, localisationSet?: any, ideologies?: any, provinceMap?: URLCachedImage, terrainLookup?: Map<number, string>, provinceLookup?: ProvinceLookup, countries?: any, poptypes?: { [poptype: string]: any }) {
     this.flagSources = flagSources;
     this.terrainSources = terrainSources;
     this.localisationSet = localisationSet;
@@ -211,6 +213,7 @@ export class VickyGameConfiguration {
     this.terrainLookup = terrainLookup;
     this.provinceLookup = provinceLookup;
     this.countries = countries;
+    this.poptypes = poptypes;
   }
 
   static async parseV2(fileDirectoryHandle: FileWithDirectoryHandle): Promise<any> {
@@ -299,6 +302,7 @@ export class VickyGameConfiguration {
     let localisations: [Promise<any>, FileWithDirectoryHandle][] = [];
     let flagFiles = new Map<string, FileWithDirectoryHandle>();
     let terrainInterfaceImageFiles = new Map<string, FileWithDirectoryHandle>();
+    let poptypes: { [poptype: string]: any } = {};
     for (const fileDirectoryHandle of saveDirectory) {
       console.log("Found " + fileDirectoryHandle.name);
       if (fileDirectoryHandle.name == "ideologies.txt") {
@@ -344,6 +348,8 @@ export class VickyGameConfiguration {
         localisations.push([this.makeLocalization(fileDirectoryHandle), fileDirectoryHandle]);
       } else if (flagTest.test(fileDirectoryHandle.name)) {
         flagFiles.set(fileDirectoryHandle.name.substring(0, fileDirectoryHandle.name.length - 4), fileDirectoryHandle);
+      } else if (fileDirectoryHandle.directoryHandle?.name.includes("poptypes")) {
+        poptypes[fileDirectoryHandle.name] = v2parser.parse(await fileDirectoryHandle.text());
       } else {
         const match = fileDirectoryHandle.name.match(terrainImageTest);
         if (!_.isNull(match)) {
@@ -413,6 +419,7 @@ export class VickyGameConfiguration {
       mapImage,
       terrainLookup,
       provinceLookup,
-      countries);
+      countries,
+      poptypes);
   }
 }

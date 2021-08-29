@@ -8,14 +8,18 @@
     "@material-ui/core": "4.11.4",
     "@material-ui/icons": "4.11.2",
     "async": "^3.2.0",
+    "bezier-js": "4.0.3",
     "browser-fs-access": "^0.17.3",
     "buffer": "^4.9.2",
     "chartist": "0.10.1",
     "classnames": "2.3.1",
+    "d3": "^7.0.1",
     "danfojs": "^0.2.7",
+    "glpk.js": "^3.2.0",
     "history": "5.0.0",
     "image-js": "^0.31.4",
     "lodash": "^4.17.21",
+    "npm-force-resolutions": "^0.0.10",
     "papaparse": "^5.3.1",
     "parse-dds": "^1.2.1",
     "perfect-scrollbar": "1.5.1",
@@ -24,16 +28,20 @@
     "react": "17.0.2",
     "react-chartist": "0.14.4",
     "react-dom": "17.0.2",
+    "react-force-graph": "^1.41.7",
     "react-pivottable": "^0.11.0",
     "react-plotly.js": "^2.5.1",
     "react-router-dom": "5.2.0",
     "react-scripts": "^4.0.3",
     "react-swipeable-views": "0.13.9",
     "react-tooltip": "^4.2.21",
-    "tga": "^1.0.4"
+    "tga": "^1.0.4",
+    "three": "^0.131.3",
+    "three-spritetext": "^1.6.2"
   },
   "scripts": {
     "start": "react-scripts start",
+    "preinstall": "npx npm-force-resolutions",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
     "build": "react-scripts build",
@@ -56,15 +64,20 @@
     "url": "https://github.com/creativetimofficial/material-dashboard-react/issues"
   },
   "homepage": "https://jackyoustra.github.io/victoria-save-analysis",
+  "resolutions": {
+    "bezier-js": "4.0.3"
+  },
   "optionalDependencies": {
     "@babel/core": "7.14.0",
     "typescript": "4.2.4"
   },
   "devDependencies": {
     "@types/async": "^3.2.7",
+    "@types/d3": "^7.0.0",
     "@types/jest": "^26.0.24",
     "@types/lodash": "^4.14.170",
     "@types/papaparse": "^5.2.5",
+    "@types/three": "^0.131.0",
     "danfojs-node": "^0.2.7",
     "eslint-config-prettier": "8.3.0",
     "eslint-plugin-only-warn": "^1.0.2",
