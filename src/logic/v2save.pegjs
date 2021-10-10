@@ -76,7 +76,8 @@ Date
   = year:$([0-9]+)"."month:$([0-9]+)"."date:$([0-9]+) { return new Date(year, month - 1, date) } // lol js months start at 0
 
 Literal "literal"
-  = _ "\"" literal:$[^\"]* "\"" { return literal; }
+  = _ "\"" literal:$[^\"\\]* "\"" { return literal; }
+  / _ custom:CustomString { return custom; } // More expensive fallback to be used when encountering escapes
 
 Atomic "atomic"
   = _ elems:$[^ \n\r\t=}{]+ { return elems; }
@@ -84,3 +85,31 @@ Atomic "atomic"
 _ "whitespace"
   = [\n\r]*"#"[^\n\r]*_
   / [ \t\n\r]*
+
+// Formal way of handling escaped strings
+// https://stackoverflow.com/a/34019313/998335
+//
+// Probably pretty expensive, so only handle strings heuristically detected to have an escape
+// sequence in them
+CustomString
+  = '"' chars:DoubleStringCharacter* '"' { return chars.join(''); }
+  / "'" chars:SingleStringCharacter* "'" { return chars.join(''); }
+
+DoubleStringCharacter
+  = !('"' / "\\") char:. { return char; }
+  / "\\" sequence:EscapeSequence { return sequence; }
+
+SingleStringCharacter
+  = !("'" / "\\") char:. { return char; }
+  / "\\" sequence:EscapeSequence { return sequence; }
+
+EscapeSequence
+  = "'"
+  / '"'
+  / "\\"
+  / "b"  { return "\b";   }
+  / "f"  { return "\f";   }
+  / "n"  { return "\n";   }
+  / "r"  { return "\r";   }
+  / "t"  { return "\t";   }
+  / "v"  { return "\x0B"; }
