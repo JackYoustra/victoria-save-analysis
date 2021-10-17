@@ -83,11 +83,10 @@ Atomic "atomic"
   = _ elems:$[^ \n\r\t=}{]+ { return elems; }
 
 _ "whitespace"
-  = [\n\r]*"#"[^\n\r]*_
+  = [ \t\n\r]*"#"[^\n\r]*_
   / [ \t\n\r]*
 
-// Formal way of handling escaped strings
-// https://stackoverflow.com/a/34019313/998335
+// Formal way of handling strings
 //
 // Probably pretty expensive, so only handle strings heuristically detected to have an escape
 // sequence in them

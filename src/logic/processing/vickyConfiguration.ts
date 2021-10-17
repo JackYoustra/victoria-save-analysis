@@ -3,7 +3,7 @@ import {TerrainInfo} from "../types/configuration/vickyTerrainDefinition";
 import _ from "lodash";
 import {terrainForColor} from "../TerrainPalette";
 import {FileWithDirectoryHandle} from "browser-fs-access";
-import v2parser from "../v2parser";
+import { parse as v2parser } from "../v2parser";
 import Papa, {ParseResult} from "papaparse";
 import TGA from "tga";
 import {string} from "prop-types";
