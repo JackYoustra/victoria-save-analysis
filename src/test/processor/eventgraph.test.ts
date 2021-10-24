@@ -4,12 +4,18 @@ import { parse } from "../../logic/v2parser";
 import _ from "lodash";
 import {box} from "../../logic/collections/collections";
 import stripBom from "strip-bom";
-import {EventList} from "../../logic/types/configuration/hoiEvent";
+import {Effects, EventList, Event, TimedHours, CountryTag} from "../../logic/types/configuration/hoiEvent";
 import {Focus, FocusFile} from "../../logic/types/configuration/hoiFocus";
 import {DecisionCategoryFile, DecisionFile} from "../../logic/types/configuration/hoiDecision";
-import {OnActionFile} from "../../logic/types/configuration/hoiOnActions";
+import {OnActionFile, StartupActions} from "../../logic/types/configuration/hoiOnActions";
+import cytoscape from "cytoscape";
+import {StringBoolean} from "../../logic/types/save/save";
+import {RandomList, SetVariable} from "../../logic/types/configuration/hoiEffects";
+import ScriptDocs from '../../../../hoidocs/script_documentation.json';
+import assert from "assert";
 
-const home = '/Users/jack/Library/Application Support/Steam/steamapps/workshop/content/394360/2438003901'
+
+const home = '/Users/jack/Library/Application Support/Steam/steamapps/workshop/content/394360/2438003901';
 
 // test('Doc2TS', () => {
 //     fs.readFileSync(, "utf-8")
@@ -24,6 +30,138 @@ function dotSanitize(name: string): string {
     // }
     // return "";
 }
+
+function* parseVickyFiles(location: string): any {
+    for (const file of fs.readdirSync(location)) {
+        yield parse(stripBom(fs.readFileSync(path.join(location, file), "utf-8")));
+    }
+}
+
+type Entry<T> = {
+    [K in keyof T]: [K, T[K]];
+}[keyof T];
+
+type Entries<T> = Entry<T>[];
+
+const countryTagRegex = new RegExp("^[A-Z]{3}$");
+
+enum Scope {
+    Global,
+    Country,
+    State,
+    UnitLeader,
+}
+
+interface EventNode {
+    countryState: State,
+    globalState: State,
+}
+
+interface State {
+    variables: {},
+}
+
+test('Prototype front-driven',  () => {
+    // Add start actions
+    const graph = cytoscape();
+
+    // Processes all effects inside of a scope (defined by brackets)
+    function addEffect(effect: Effects, scopeType: Scope) {
+        const entries = Object.entries(effect);
+        const [countryEvents, globalEvents] = _.partition(entries, x => countryTagRegex.test(x[0])) as unknown as [[CountryTag, Effects][], Entries<Effects>];
+        const eventState = { countryState: { variables: {} }, globalState: { variables: {} } };
+
+        for (const [scope, events] of [["COUNTRY", countryEvents], ["GLOBAL", globalEvents]]) {
+            for (const [action, contexts] of events) {
+                assert(ScriptDocs.effects[action].contains(scope) || ScriptDocs.effects[action].contains("any"), `${action} is not valid for scope ${scope}`);
+                for (const actionContext in box(contexts as any[] | any)) {
+                    switch (action) {
+                        case "country_event":
+                            const eventContext = actionContext as Event;
+                            // Add the event
+                            graph.add({
+                                group: 'nodes',
+                                data: {
+                                    id: eventContext.id,
+                                }
+                            });
+
+                            // Add edge with the mtth as the weight
+                            graph.add({
+                                group: 'edges',
+                                data: {
+                                    id: `${action}_${dotSanitize(countryActionEffect[0])}`,
+                                    source: tag,
+                                    target: eventContext.id,
+                                    weight: TimedHours(eventContext),
+                                }
+                            });
+                            break;
+                        case "set_variable":
+                            const variableContext = actionContext as SetVariable;
+                            // Add the variable to gameState
+                            gameState.variables[variableContext.var] = variableContext.value;
+                            break;
+                        case "random_list":
+                            const randomListContext = actionContext as RandomList;
+                            // Branch the graph at this point and recurse
+                            break;
+                        case "clr_country_flag":
+                            break;
+                        case ""
+                        default:
+                            // None of these are effects, so check if they're flags
+                            if (Object.values(StringBoolean).contains(actionContext)) {
+                                // It's a flag, add to gameState
+                                gameState[action] = actionContext;
+                            }
+                    }
+                }
+            }
+        }
+
+
+        for (const [tag, actionObjects] of countryEvents) {
+            // Add to the game state before adding it to the graph
+            const start_id = `${tag}_start`;
+
+            // Handle more than one occurance of each tag
+            for (const actionObject of box(actionObjects)) {
+                for (const countryActionEffect of Object.entries(actionObject)) {
+                    const [action, actionContext] = pair as Entry<Effects>;
+
+
+                }
+            }
+
+            // Add start event to graph
+            graph.add({
+                group: 'nodes',
+                data: {
+                    id: start_id,
+                    gameState,
+                }
+            });
+        }
+    }
+
+    const onActions = `${home}/common/on_actions`;
+    for (const file of fs.readdirSync(onActions)) {
+        const fullPath = path.join(onActions, file);
+        const data = stripBom(fs.readFileSync(fullPath, "utf-8"));
+        const result: OnActionFile = parse(data);
+        for (const action of box(result.on_actions)) {
+            for (const onStartupAction of box(action.on_startup)) {
+                for (const startupAction of box(onStartupAction)) {
+                    for (const startupEffect of box(startupAction.effect)) {
+                        addEffect(startupEffect);
+
+                    }
+                }
+            }
+        }
+    }
+});
 
 test('Prototype',  () => {
     const folder = `${home}/events`;
@@ -59,7 +197,8 @@ test('Prototype',  () => {
 // This can be true, but a lot can be achieved via the hidden_effect field
 // This can trigger other country eventFileStructures
 // Just draw these for now
-    const paths: string[][] = [];
+    let paths: string[][] = [];
+
     const traverse = (obj: any, idToAdd: string, root = true) => {
         for (let k in obj) {
             if (obj[k] && typeof obj[k] === 'object') {
@@ -73,7 +212,7 @@ test('Prototype',  () => {
                     }
                     // The hiddenEffect is undefined if the countryevent is actually a string
                     if (_.isString(hiddenID)) {
-                        hiddenID = paths.push([idToAdd, dotSanitize(hiddenID)]);
+                        paths.push([idToAdd, dotSanitize(hiddenID)]);
                     }
                 }
             }
@@ -125,9 +264,7 @@ test('Prototype',  () => {
     }
 
     for (const file of fs.readdirSync(focuses)) {
-        const fullPath = path.join(focuses, file);
-        const data = stripBom(fs.readFileSync(fullPath, "utf-8"));
-        const result: FocusFile = parse(data);
+        const result: FocusFile = parse(stripBom(fs.readFileSync(path.join(focuses, file), "utf-8")));
         for (const shared of box(result.shared_focus)) {
             processFocus(shared);
         }
@@ -184,12 +321,25 @@ test('Prototype',  () => {
             }
         }
     }
+    const cy = cytoscape({
+        elements: _.concat(
+            [... new Set(paths.flat(1))]
+            .map(node => ({group: 'nodes', data: {id: node}})),
+            // @ts-ignore
+            paths.map(([from, to]) => ({group: 'edges', data: {id: `${from}_${to}`, source: from, target: to}}))
+        ),
+    });
+
+    const jap_start = cy.getElementById("JAP_start");
+    const jap_path = jap_start.successors();
+    paths = jap_path.connectedEdges().map(x => [x.source().id(), x.target().id()]);
+
 
     const dotlist = paths.map(value => {
         return value.join(" -> ")
     }).join("\n");
 
     const saveText = `digraph EventGraph\n{\n${dotlist}\n}`;
-    fs.writeFileSync("events.dot", saveText);
+    fs.writeFileSync("events_cy.dot", saveText);
     expect(paths).toHaveLength(45603);
 });
