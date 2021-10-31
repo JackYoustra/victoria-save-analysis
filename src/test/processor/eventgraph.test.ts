@@ -11,7 +11,7 @@ import {OnActionFile, StartupActions} from "../../logic/types/configuration/hoiO
 import cytoscape from "cytoscape";
 import {StringBoolean} from "../../logic/types/save/save";
 import {RandomList, SetVariable} from "../../logic/types/configuration/hoiEffects";
-import ScriptDocs from '../../../../hoidocs/script_documentation.json';
+import ScriptDocs from '../../../hoidocs/script_documentation.json';
 import assert from "assert";
 
 
@@ -199,6 +199,16 @@ test('Prototype',  () => {
 // Just draw these for now
     let paths: string[][] = [];
 
+    let scriptedEffectsList: any[] = []
+    for (const file of fs.readdirSync(`${home}/common/scripted_effects`)) {
+        const fullPath = path.join(`${home}/common/scripted_effects`, file);
+        const data = stripBom(fs.readFileSync(fullPath, "utf-8"));
+        const result = parse(data);
+        scriptedEffectsList.push(result);
+    }
+
+    let scriptedEffects = _.merge({}, ...scriptedEffectsList);
+
     const traverse = (obj: any, idToAdd: string, root = true) => {
         for (let k in obj) {
             if (obj[k] && typeof obj[k] === 'object') {
@@ -214,9 +224,18 @@ test('Prototype',  () => {
                     if (_.isString(hiddenID)) {
                         paths.push([idToAdd, dotSanitize(hiddenID)]);
                     }
+                } else if (obj[k] == "yes" && scriptedEffects[k]) {
+                    paths.push([idToAdd, dotSanitize(k)]);
+                } else if (k == "tree") {
+                    // All instances of "tree" are from "load_focus_tree"
+                    paths.push([idToAdd, dotSanitize(obj[k])]);
                 }
             }
         }
+    }
+
+    for (const [name, effect] of Object.entries(scriptedEffects)) {
+        traverse(effect, dotSanitize(name));
     }
 
     for (const event of defined_events) {
@@ -250,12 +269,18 @@ test('Prototype',  () => {
     // Add national focuses
     const focuses = `${home}/common/national_focus`;
 
-    function processFocus(focus: Focus) {
+    function processFocus(focus: Focus, tree?: FocusTree) {
         const foucsID = dotSanitize(focus.id);
-        for (const prereq of box(focus.prerequisite)) {
-            for (const prereqFocus of box(prereq.focus)) {
-                paths.push([dotSanitize(prereqFocus), foucsID]);
+        const prereqs = box(focus.prerequisite);
+        if (prereqs.length > 0) {
+            for (const prereq of prereqs) {
+                for (const prereqFocus of box(prereq.focus)) {
+                    paths.push([dotSanitize(prereqFocus), foucsID]);
+                }
             }
+        } else if (tree) {
+            // No prereqs, so add path from tree ID to focus
+            paths.push([dotSanitize(tree.id), foucsID]);
         }
         // Add all events, similar to get via trigger
         // TODO: make select_effect chain come before completion_reward chain.
@@ -270,7 +295,10 @@ test('Prototype',  () => {
         }
         for (const focusTree of box(result.focus_tree)) {
             for (const focus of box(focusTree.focus)) {
-                processFocus(focus);
+                processFocus(focus, focusTree);
+            }
+            for (const shared_id of box(focusTree.shared_focus)) {
+                paths.push([dotSanitize(focusTree.id), dotSanitize(shared_id)]);
             }
         }
     }
@@ -332,7 +360,8 @@ test('Prototype',  () => {
 
     const jap_start = cy.getElementById("JAP_start");
     const jap_path = jap_start.successors();
-    paths = jap_path.connectedEdges().map(x => [x.source().id(), x.target().id()]);
+    // @ts-ignore
+    paths = jap_path.filter(x => x.source()?.length).map(x => [x.source().id(), x.target().id()]);
 
 
     const dotlist = paths.map(value => {
