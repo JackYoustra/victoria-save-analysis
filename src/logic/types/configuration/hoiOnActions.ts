@@ -12,6 +12,8 @@ export interface OnActions {
 
 type StartupActionEffect = Effects & CountryEffects;
 
+export type StartupActions = StartupActionEffect[] | StartupActionEffect;
+
 export interface Action {
-    effect?: StartupActionEffect[] | StartupActionEffect | undefined;
+    effect?: StartupActions;
 }

@@ -4,7 +4,10 @@ export interface FocusFile {
 }
 
 export interface FocusTree {
+    id: string;
     focus?: Focus[] | Focus;
+    // References to other shared focuses
+    shared_focus?: string[] | string;
 }
 
 export interface Focus {

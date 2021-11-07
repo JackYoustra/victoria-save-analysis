@@ -4,8 +4,14 @@ import { parse } from "../../logic/v2parser";
 import _ from "lodash";
 import {box} from "../../logic/collections/collections";
 import stripBom from "strip-bom";
-import {Effects, EventList, Event, TimedHours, CountryTag} from "../../logic/types/configuration/hoiEvent";
-import {Focus, FocusFile} from "../../logic/types/configuration/hoiFocus";
+import {
+    Effects,
+    EventList,
+    Event,
+    TimedHours,
+    CountryTag, Trigger
+} from "../../logic/types/configuration/hoiEvent";
+import {Focus, FocusFile, FocusTree} from "../../logic/types/configuration/hoiFocus";
 import {DecisionCategoryFile, DecisionFile} from "../../logic/types/configuration/hoiDecision";
 import {OnActionFile, StartupActions} from "../../logic/types/configuration/hoiOnActions";
 import cytoscape from "cytoscape";
@@ -44,6 +50,7 @@ type Entry<T> = {
 type Entries<T> = Entry<T>[];
 
 const countryTagRegex = new RegExp("^[A-Z]{3}$");
+const stateIDRegex = new RegExp("^[0-9]+$");
 
 enum Scope {
     Global,
@@ -52,98 +59,367 @@ enum Scope {
     UnitLeader,
 }
 
-interface EventNode {
-    countryState: State,
-    globalState: State,
+function docsString(scope: Scope): string {
+    switch (scope) {
+        case Scope.Global:
+            return "GLOBAL";
+        case Scope.Country:
+            return "COUNTRY";
+        case Scope.State:
+            return "STATE";
+        case Scope.UnitLeader:
+            return "UNIT_LEADER";
+    }
 }
 
-interface State {
+type ScopeType = {
+    kind: Scope.Global,
+} | {
+    kind: Scope.Country,
+    country: CountryTag,
+} | {
+    kind: Scope.State,
+    state: number,
+} | {
+    kind: Scope.UnitLeader,
+    country: CountryTag,
+    state: string,
+    unit: string,
+};
+
+enum ScopeReference {
+    ROOT,
+    THIS,
+    PREV,
+    FROM,
+}
+
+interface EventNodeInterface {
+    globalState: ScopedState,
+    // Attacker to defender
+    wars: { [attackerTag: string]: string[] | undefined },
+    // For branching
+    lastEventID: string,
+}
+
+export type UnitID = `${string}.${string}`;
+
+type EventNode = EventNodeInterface & { [tag in CountryTag]?: ScopedState } & { [stateID: number]: ScopedState | undefined } & { [unitID in UnitID]?: ScopedState };
+
+interface ScopedState {
     variables: {},
+    ideas: { [idea: string]: string },
+    flags: { [flag: string]: StringBoolean },
+}
+
+function newScopedState(): ScopedState {
+    return {
+        flags: {},
+        ideas: {},
+        variables: {}
+    };
+}
+
+function stateForScope(scope: ScopeType, node: EventNode): ScopedState {
+    switch (scope.kind) {
+        case Scope.Global:
+            return node.globalState;
+        case Scope.Country:
+            if (_.isUndefined(node[scope.country])) {
+                node[scope.country] = newScopedState();
+            }
+            return node[scope.country]!;
+        case Scope.State:
+            if (_.isUndefined(node[scope.state])) {
+                node[scope.state] = newScopedState();
+            }
+            return node[scope.state]!;
+        case Scope.UnitLeader:
+            const id = `${scope.state}.${scope.unit}`;
+            if (_.isUndefined(node[id])) {
+                node[id] = newScopedState();
+            }
+            return node[id]!;
+    }
+}
+
+function passesAnd(node: EventNode, trigger: Trigger, scope: ScopeType): boolean {
+    for (const [kind, predicate] of Object.entries(trigger)) {
+        for (const currentPredicate of box(predicate)) {
+            if (!passesTriggerCondition(node, trigger, scope, kind, currentPredicate)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+function passesOr(node: EventNode, trigger: Trigger, scope: ScopeType): boolean {
+    for (const [kind, predicate] of Object.entries(trigger)) {
+        for (const currentPredicate of box(predicate)) {
+            if (!passesTriggerCondition(node, trigger, scope, kind, currentPredicate)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function passesTriggerCondition(node: EventNode, trigger: Trigger, scope: ScopeType, kind: string, predicate: any): boolean {
+    // Go over each entry in the trigger, and check if the contiion of "kind" is met by the predicate
+    switch (kind.toLowerCase()) {
+        case "and":
+            return passesAnd(node, predicate, scope);
+        case "not":
+            return !passesOr(node, predicate, scope);
+        case "or":
+            return passesOr(node, predicate, scope);
+        case "tag":
+            // Check variable resolution too!
+            return (scope.kind === Scope.Country && scope.country === predicate);
+        case "original_tag":
+            // TODO: not techically right, have to introduce country history
+            return (scope.kind === Scope.Country && scope.country === predicate);
+        case "has_country_flag":
+            assert (_.isString(predicate), "If not true, have to implement expanded form of this flag");
+            return (scope.kind === Scope.Country && stateForScope(scope, node).flags[predicate] === "yes");
+        case "has_global_flag":
+            assert (_.isString(predicate), "If not true, have to implement expanded form of this flag");
+            return node.globalState.flags[predicate] === "yes";
+        case "is_ai":
+            return false;
+        case "has_game_rule":
+            return false;
+        case "has_idea":
+            assert(scope.kind === Scope.Country);
+            return stateForScope(scope, node).ideas[predicate] !== undefined;
+        case "has_war_with":
+            assert(scope.kind === Scope.Country);
+            return (node.wars[predicate]?.includes(scope.country) ?? false) || (node.wars[scope.country]?.includes(predicate) ?? false);
+        case "check_variable":
+
+            const variable = stateForScope(scope, node).variables[predicate];
+        default:
+            if (predicate === "yes" || predicate === "no") {
+                // Just checking if we have a flag on current scope
+                return stateForScope(scope, node).flags[kind] === predicate;
+            }
+            assert(false, `Unknown trigger kind ${kind}`);
+    }
+}
+
+function passesTrigger(node: EventNode, trigger: Trigger, scope: ScopeType): boolean {
+    return passesAnd(node, trigger, scope);
+}
+
+function passesLimit(node: EventNode, limitable: any, scope: ScopeType): boolean {
+    return (_.isUndefined(limitable.limit) || passesTrigger(node, limitable.limit, scope));
 }
 
 test('Prototype front-driven',  () => {
     // Add start actions
     const graph = cytoscape();
 
-    // Processes all effects inside of a scope (defined by brackets)
-    function addEffect(effect: Effects, scopeType: Scope) {
-        const entries = Object.entries(effect);
-        const [countryEvents, globalEvents] = _.partition(entries, x => countryTagRegex.test(x[0])) as unknown as [[CountryTag, Effects][], Entries<Effects>];
-        const eventState = { countryState: { variables: {} }, globalState: { variables: {} } };
+    // Pre-populate events for driven additions
+    const folder = `${home}/events`;
+    const eventFiles = fs.readdirSync(folder);
+    const eventFileStructures: EventList[] = [];
+    for (const file of eventFiles) {
+        try {
+            eventFileStructures.push(parse(stripBom(fs.readFileSync(path.join(folder, file), "utf-8"))));
+        } catch (e) {
+            console.log(e);
+        }
+    }
 
-        for (const [scope, events] of [["COUNTRY", countryEvents], ["GLOBAL", globalEvents]]) {
-            for (const [action, contexts] of events) {
-                assert(ScriptDocs.effects[action].contains(scope) || ScriptDocs.effects[action].contains("any"), `${action} is not valid for scope ${scope}`);
-                for (const actionContext in box(contexts as any[] | any)) {
+    const events = eventFileStructures.flatMap(value => _.concat(
+        box(value.country_event),
+        box(value.country_Event),
+        box(value.news_event)
+    ));
+
+    const eventIDs: { [event: string]: Event | undefined } = {};
+
+    for (const event of events) {
+        eventIDs[event.id] = event;
+        graph.add({
+            group: 'nodes',
+            data: {
+                id: event.id,
+            }
+        });
+    }
+
+    // Processes all effects inside of a scope (defined by brackets)
+    // Assert transitions: https://hoi4.paradoxwikis.com/Scopes
+    function addEffect(effect: Effects, scopeType: ScopeType, eventNode: EventNode) {
+        if(_.isUndefined(effect)) {
+            let echo = 4;
+        }
+        const entries = Object.entries(effect) as Entries<Effects>;
+        // Contexts is action context - the trailing predicate. May be more than one
+        for (const [action, contexts] of entries) {
+            const scopeString = docsString(scopeType.kind);
+            // assert(ScriptDocs.effects[action].supported_scope.includes(scopeString) || ScriptDocs.effects[action].supported_scope.includes("any"), `${action} is not valid for scope ${scopeString}`);
+            const scopeState = stateForScope(scopeType, eventNode);
+            if (countryTagRegex.test(action)) {
+                // It's a tag, switch scopes and recurse
+                const tag = action as CountryTag;
+                for (const context of box(contexts)) {
+                    addEffect(context, {kind: Scope.Country, country: tag}, eventNode);
+                }
+            } else if (stateIDRegex.test(action)) {
+                for (const context of box(contexts)) {
+                    addEffect(context, {kind: Scope.State, state: action as unknown as number}, eventNode);
+                }
+            } else {
+                let current = 0
+                for (const actionContextUntyped of box(contexts)) {
+                    const actionContext = actionContextUntyped as unknown as Effects;
                     switch (action) {
                         case "country_event":
-                            const eventContext = actionContext as Event;
-                            // Add the event
-                            graph.add({
-                                group: 'nodes',
-                                data: {
-                                    id: eventContext.id,
-                                }
-                            });
+                        case "news_event":
+                            if (scopeType.kind !== Scope.Country) {
+                                console.log("hi")
+                            }
+                            assert (scopeType.kind === Scope.Country, "country_event can only be used in country scope");
+                            const eventContext = actionContext as unknown as Event;
+                            // Adding the event performed when going over the event files
 
                             // Add edge with the mtth as the weight
-                            graph.add({
-                                group: 'edges',
-                                data: {
-                                    id: `${action}_${dotSanitize(countryActionEffect[0])}`,
-                                    source: tag,
-                                    target: eventContext.id,
-                                    weight: TimedHours(eventContext),
+                            const event_id = eventContext.id;
+                            const event = eventIDs[event_id];
+                            assert(event, "Event should exist");
+
+                            // Only recurse if we haven't seen this event before
+                            const edge_id = `${eventNode.lastEventID}_${eventContext.id}`;
+                            if (!graph.getElementById(edge_id)) {
+                                graph.add({
+                                    group: 'edges',
+                                    data: {
+                                        id: edge_id,
+                                        source: eventNode.lastEventID,
+                                        target: eventContext.id,
+                                        weight: TimedHours(eventContext),
+                                    }
+                                });
+
+                                for (const immediate of box(event.immediate)) {
+                                    addEffect(immediate, scopeType, eventNode);
                                 }
-                            });
+
+                                for (const option of box(event.option)) {
+                                    if (_.isUndefined(option.trigger) || passesTrigger(eventNode, option.trigger, scopeType)) {
+                                        addEffect(option, scopeType, _.cloneDeep(eventNode));
+                                    }
+                                }
+                            }
+                            break;
+                        // Handle if and else in a pairwise manner
+                        case "if":
+                            // assert(scopeType.kind === Scope.Country, "if can only be used in country scope");
+                            const elseContexts = box(entries["else"]);
+                            const ifContext = actionContext as unknown as Event;
+                            assert(elseContexts.length === 0 || elseContexts.length === box(contexts).length, "Each if must correspond to exactly one else");
+                            if (passesLimit(eventNode, ifContext, scopeType)) {
+                                addEffect(ifContext, scopeType, eventNode);
+                            } else if (elseContexts.length > 0) {
+                                addEffect(elseContexts[current], scopeType, eventNode);
+                            }
+                            break;
+                        case "else":
+                            // Handled above
                             break;
                         case "set_variable":
-                            const variableContext = actionContext as SetVariable;
+                            const variableContext = actionContext as unknown as SetVariable;
                             // Add the variable to gameState
-                            gameState.variables[variableContext.var] = variableContext.value;
+                            scopeState.variables[variableContext.var] = variableContext.value;
                             break;
                         case "random_list":
                             const randomListContext = actionContext as RandomList;
                             // Branch the graph at this point and recurse
                             break;
                         case "clr_country_flag":
+                            delete scopeState.variables[actionContext as unknown as string];
                             break;
-                        case ""
+                        case "set_country_flag":
+                            scopeState.variables[actionContext as unknown as string] = "yes";
+                            break;
+                        case "every_country":
+                            // Look for countries defined on the event node (these are the countries that exist)
+                            // and run the country event on them
+                            for (const country of Object.entries(eventNode)) {
+                                const tag = country[0];
+                                if (countryTagRegex.test(tag)) {
+                                    const predicate = country[1] as ScopedState;
+                                    const scope: ScopeType = {
+                                        kind: Scope.Country,
+                                        country: tag as CountryTag
+                                    };
+                                    if (passesLimit(eventNode, actionContext, scope)) {
+                                        addEffect(actionContext, scope, eventNode);
+                                    }
+                                }
+                            }
+                            break;
+                        case "random_country":
+                            const eligibleCountries: CountryTag[] = [];
+                            for (const country of Object.entries(eventNode)) {
+                                const tag = country[0];
+                                if (countryTagRegex.test(tag)) {
+                                    const predicate = country[1];
+                                    const scope: ScopeType = {
+                                        kind: Scope.Country,
+                                        country: tag as CountryTag
+                                    };
+                                    if (passesLimit(eventNode, actionContext, scope)) {
+                                        eligibleCountries.push(tag as unknown as CountryTag);
+                                    }
+                                }
+                            }
+                            const country = _.sample(eligibleCountries);
+                            if (!_.isUndefined(country)) {
+                                addEffect(actionContext, {kind: Scope.Country, country}, eventNode);
+                            }
+                            break;
+                        case "every_state":
+                            for (const state of Object.entries(eventNode)) {
+                                const tag = state[0];
+                                if (stateIDRegex.test(tag)) {
+                                    addEffect(actionContext, {kind: Scope.State, state: state as number}, eventNode);
+                                }
+                            }
+                            break;
+                        case "hidden_effect":
+                            // Just not shown on tooltips, keep going
+                            addEffect(actionContext, scopeType, eventNode);
+                            break;
                         default:
                             // None of these are effects, so check if they're flags
-                            if (Object.values(StringBoolean).contains(actionContext)) {
+                            const defaultContext = actionContext as unknown as string;
+                            if (Object.values(StringBoolean).some((v) => v === defaultContext)) {
                                 // It's a flag, add to gameState
-                                gameState[action] = actionContext;
+                                scopeState.flags[action] = defaultContext as StringBoolean;
+                            } else {
+                                console.log(`Effect \"${action}\" not handled!!!`);
                             }
                     }
+                    current += 1
                 }
             }
-        }
-
-
-        for (const [tag, actionObjects] of countryEvents) {
-            // Add to the game state before adding it to the graph
-            const start_id = `${tag}_start`;
-
-            // Handle more than one occurance of each tag
-            for (const actionObject of box(actionObjects)) {
-                for (const countryActionEffect of Object.entries(actionObject)) {
-                    const [action, actionContext] = pair as Entry<Effects>;
-
-
-                }
-            }
-
-            // Add start event to graph
-            graph.add({
-                group: 'nodes',
-                data: {
-                    id: start_id,
-                    gameState,
-                }
-            });
         }
     }
+
+    const startStoryID = "story_start";
+
+    graph.add({
+        group: 'nodes',
+        data: {
+            id: startStoryID,
+        }
+    });
+
+    const startNode = { globalState: newScopedState(), lastEventID: startStoryID, wars: {} };
 
     const onActions = `${home}/common/on_actions`;
     for (const file of fs.readdirSync(onActions)) {
@@ -154,8 +430,7 @@ test('Prototype front-driven',  () => {
             for (const onStartupAction of box(action.on_startup)) {
                 for (const startupAction of box(onStartupAction)) {
                     for (const startupEffect of box(startupAction.effect)) {
-                        addEffect(startupEffect);
-
+                        addEffect(startupEffect, { kind: Scope.Global }, startNode);
                     }
                 }
             }
